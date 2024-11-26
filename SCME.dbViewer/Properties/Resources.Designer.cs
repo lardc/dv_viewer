@@ -747,6 +747,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The value of filter &apos;{0}&apos; is not equal &apos;{1}&apos;..
+        /// </summary>
+        public static string FilterValueIsBad {
+            get {
+                return ResourceManager.GetString("FilterValueIsBad", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The number of filter values ​​for the field &quot;{0}&quot; is not equal to 1. To perform this action, no more than one filter value for the field &quot;{0}&quot; is required..
         /// </summary>
         public static string FilterValuesIsNotSingle {

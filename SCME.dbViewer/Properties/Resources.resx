@@ -785,4 +785,7 @@ device</value>
   <data name="UfmMax" xml:space="preserve">
     <value>UfmMax</value>
   </data>
+  <data name="FilterValueIsBad" xml:space="preserve">
+    <value>The value of filter '{0}' is not equal '{1}'.</value>
+  </data>
 </root>

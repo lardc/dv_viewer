@@ -782,4 +782,7 @@
   <data name="UfmMax" xml:space="preserve">
     <value>UfmMax</value>
   </data>
+  <data name="FilterValueIsBad" xml:space="preserve">
+    <value>Значение фильтра по полю '{0}' не равно '{1}'.</value>
+  </data>
 </root>

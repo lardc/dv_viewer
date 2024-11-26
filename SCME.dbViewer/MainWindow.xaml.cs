@@ -1989,16 +1989,26 @@ namespace SCME.dbViewer
 
         private void AssemblyProtocolModeOn(int descr)
         {
+            //узнаём обозначение статуса сборки с AssemblyStatusID=1
+            string assemblyStatusDescr = DbRoutines.AssemblyDescrByAssemblyStatusID(1);
+
             //удаляем все имеющиеся на данный момент фильтры
             this.FActiveFilters.Clear();
 
-            //включаем фильтр по принятому обозначению протокола сборки
-            CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, Common.Constants.AssemblyProtocolDescr) { Type = typeof(System.Int32).FullName, TittlefieldName = Properties.Resources.AssemblyProtocol, Comparison = "=", Value = descr, AcceptedToUse = true };
+            //формируем фильтр по принятому обозначению протокола сборки
+            CustomControls.FilterDescription filterByAssemblyProtocolDescr = new CustomControls.FilterDescription(this.FActiveFilters, Common.Constants.AssemblyProtocolDescr) { Type = typeof(System.Int32).FullName, TittlefieldName = Properties.Resources.AssemblyProtocol, Comparison = "=", Value = descr, AcceptedToUse = true };
 
-            //включаем режим просмотра протокола сборки
+            //формируем фильтр по значению статуса сборки
+            CustomControls.FilterDescription filterByAssemblyStatusDescr = new CustomControls.FilterDescription(this.FActiveFilters, Common.Constants.AssemblyStatusDescr) { Type = typeof(System.String).FullName, TittlefieldName = Properties.Resources.AssemblyStatusDescr, Comparison = "=", Value = assemblyStatusDescr, AcceptedToUse = true };
+
+            //применяем сформированные фильтры
+            this.FActiveFilters.Add(filterByAssemblyProtocolDescr);
+            this.FActiveFilters.Add(filterByAssemblyStatusDescr);
+
+            //необходимые для работы режима протокола сборки фильтры созданы - включаем режим просмотра протокола сборки
             this.AssemblyProtocolMode = true;
 
-            this.FActiveFilters.Add(filter);
+            //применяем фильтры
             this.ApplyFilters();
         }
 
@@ -2923,16 +2933,25 @@ namespace SCME.dbViewer
             if (this.AssemblyProtocolMode)
             {
                 //данная реализация будет вызвана сразу после изменения списка действующих фильтров
-                int countOfFiltersByAssemblyProtocolDescr = actualFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr).Count();
+                IEnumerable<CustomControls.FilterDescription> filtersByAssemblyProtocolDescr = actualFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr);
+                int countOfFiltersByAssemblyProtocolDescr = filtersByAssemblyProtocolDescr.Count();
+
+                IEnumerable<CustomControls.FilterDescription> filtersByAssemblyStatusDescr = actualFilters.Where(f => f.FieldName == Common.Constants.AssemblyStatusDescr);
+                int countOfFiltersByAssemblyStatusDescr = filtersByAssemblyStatusDescr.Count();
+
+                string assemblyDescr = DbRoutines.AssemblyDescrByAssemblyStatusID(1);
 
                 //проверяем два возможных варианта описания фильтра:
                 //один или несколько фильтров по протоколу сборки;
                 //один фильтр с несколькими значениями протокола сборки
-                if (
-                    (actualFilters.Count() != 1) ||
-                    (countOfFiltersByAssemblyProtocolDescr != 1) ||
-                    ((countOfFiltersByAssemblyProtocolDescr == 1) && ((actualFilters.Single().Comparison != "=") || (actualFilters.Single().Values.Count() != 1)))
-                   )
+                bool needResetAssemblyProtocolMode = (
+                                                      (actualFilters.Count() != 2) ||
+                                                      (countOfFiltersByAssemblyProtocolDescr != 1) || (countOfFiltersByAssemblyStatusDescr != 1) ||
+                                                      (filtersByAssemblyProtocolDescr.Single().Comparison != "=") || (filtersByAssemblyProtocolDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Comparison != "=") || (filtersByAssemblyStatusDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Values[0].Value.ToString() != assemblyDescr)                                                     
+                                                     );
+
+
+                if (needResetAssemblyProtocolMode)
                 {
                     //выключаем режим просмотра протокола сборки
                     this.AssemblyProtocolMode = false;
@@ -3000,14 +3019,14 @@ namespace SCME.dbViewer
         {
             if (Common.Routines.IsUserCanWorkWithAssemblyProtocol(this.PermissionsLo))
             {
-                //для перехода в режим просмотра протокола сборки должен быть включён один единственный фильтр и этот фильтр должен быть фильтр по полю "ASSEMBLYPROTOCOLDESCR"
-                if (this.FActiveFilters.Count() != 1)
+                //для перехода в режим просмотра протокола сборки должны быть включены два фильтра: по полю "ASSEMBLYPROTOCOLDESCR" и по полю "ASSEMBLYSTATUSDESCR"
+                if (this.FActiveFilters.Count() != 2)
                 {
                     MessageBox.Show(Properties.Resources.FiltersCountIsNotOne, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
                     return;
                 }
 
-                //если фильтр по протоколу сборки (в единственном числе) активен - разрешаем пользователю включить режим просмотра протокола сборки
+                //если активны фильтры по протоколу сборки (в единственном числе) и по обозначению статуса сборки (в единственном числе) - разрешаем пользователю включить режим просмотра протокола сборки
                 IEnumerable<CustomControls.FilterDescription> filters = this.FActiveFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr);
 
                 if (filters == null)
@@ -3029,7 +3048,7 @@ namespace SCME.dbViewer
                     //проверим, что в данном фильтре тип сравнения есть '='
                     if (filter.Comparison != "=")
                     {
-                        MessageBox.Show(Properties.Resources.FilterComparisonTypeIsNotEqual, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        MessageBox.Show(string.Concat(Properties.Resources.ProtocolDescr, ". ", Properties.Resources.FilterComparisonTypeIsNotEqual), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
                         return;
                     }
 
@@ -3040,14 +3059,57 @@ namespace SCME.dbViewer
                         return;
                     }
 
-                    this.AssemblyProtocolMode = true;
+                    //проверяем наличие фильтра по обозначению статуса протокола сборки
+                    filters = this.FActiveFilters.Where(f => f.FieldName == Common.Constants.AssemblyStatusDescr);
 
-                    //строим шапку протокола сборки
-                    if (int.TryParse(this.lbRecordCount.Content.ToString(), out int cacheSize))
-                        this.BuildHeadOfAssemblyProtocol(cacheSize);
+                    if (filters == null)
+                    {
+                        MessageBox.Show(string.Format(Properties.Resources.FilterIsNotOn, Properties.Resources.AssemblyStatusDescr), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        return;
+                    }
+                    else
+                    {
+                        if (filters.Count() != 1)
+                        {
+                            MessageBox.Show(string.Format(Properties.Resources.FilterIsNotSingle, Properties.Resources.AssemblyStatusDescr), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                            return;
+                        }
 
-                    //перестраиваем столбцы которые отображают conditions/parameters в dgDevices
-                    this.ReBuildCPColumnsForAssemblyProtocolMode();
+                        //раз мы здесь - значит фильтр по обозначению статуса сборки в единственном числе
+                        filter = filters.Single();
+
+                        //проверим, что в данном фильтре тип сравнения есть '='
+                        if (filter.Comparison != "=")
+                        {
+                            MessageBox.Show(string.Concat(Properties.Resources.AssemblyStatusDescr, ". ", Properties.Resources.FilterComparisonTypeIsNotEqual), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                            return;
+                        }
+
+                        //проверим, что в данном фильтре установлено не более одного значения поля
+                        if (filter.Values.Count != 1)
+                        {
+                            MessageBox.Show(string.Format(Properties.Resources.FilterValuesIsNotSingle, Properties.Resources.AssemblyStatusDescr), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                            return;
+                        }
+
+                        //проверим, что в данном фильтре установлено значение 'Сборка'
+                        string assemblyDescr = DbRoutines.AssemblyDescrByAssemblyStatusID(1);
+
+                        if (filter.Values[0].Value.ToString() != assemblyDescr)
+                        {
+                            MessageBox.Show(string.Format(Properties.Resources.FilterValueIsBad, Properties.Resources.AssemblyStatusDescr, assemblyDescr), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                            return;
+                        }
+
+                        this.AssemblyProtocolMode = true;
+
+                        //строим шапку протокола сборки
+                        if (int.TryParse(this.lbRecordCount.Content.ToString(), out int cacheSize))
+                            this.BuildHeadOfAssemblyProtocol(cacheSize);
+
+                        //перестраиваем столбцы которые отображают conditions/parameters в dgDevices
+                        this.ReBuildCPColumnsForAssemblyProtocolMode();
+                    }
                 }
             }
         }
