@@ -98,7 +98,7 @@ namespace SCME.dbViewer
 
             lock (this)
             {
-                //загрузка запрошенного списка изделий
+                //загрузка запрошенного списка протоколов сборки
                 SCME.Types.DbRoutines.CacheAssemblyProtocolsReadData(this.FillPortionData, result, offSet, portionSize, Common.Constants.cString_AggDelimeter);
             }
 

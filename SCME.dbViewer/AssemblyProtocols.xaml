@@ -52,7 +52,7 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{x:Static res:Resources.ProtocolDescr}" Binding="{Binding {x:Static common:Constants.Descr}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.Descr}"/>
                 <DataGridTextColumn Header="{x:Static res:Resources.DateCreated}" Binding="{Binding {x:Static common:Constants.Ts}, UpdateSourceTrigger=PropertyChanged, StringFormat=dd.MM.yyyy}" SortMemberPath="{x:Static common:Constants.Ts}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Quantity}" Binding="{Binding {x:Static common:Constants.ApRecordCount}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.ApRecordCount}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Quantity}" Binding="{Binding {x:Static common:Constants.RecordCount}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.RecordCount}"/>
                 <DataGridTextColumn Header="{x:Static res:Resources.AssemblyJob}" Binding="{Binding {x:Static common:Constants.AssemblyJob}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.AssemblyJob}"/>
                 <DataGridTextColumn Header="{x:Static res:Resources.DeviceTypeRU}" Binding="{Binding {x:Static common:Constants.DeviceTypeRU}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.DeviceTypeRU}"/>
                 <DataGridTextColumn Header="{x:Static res:Resources.DeviceTypeEN}" Binding="{Binding {x:Static common:Constants.DeviceTypeEN}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{x:Static common:Constants.DeviceTypeEN}"/>

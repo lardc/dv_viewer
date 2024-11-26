@@ -2001,15 +2001,38 @@ namespace SCME.dbViewer
             //формируем фильтр по значению статуса сборки
             CustomControls.FilterDescription filterByAssemblyStatusDescr = new CustomControls.FilterDescription(this.FActiveFilters, Common.Constants.AssemblyStatusDescr) { Type = typeof(System.String).FullName, TittlefieldName = Properties.Resources.AssemblyStatusDescr, Comparison = "=", Value = assemblyStatusDescr, AcceptedToUse = true };
 
-            //применяем сформированные фильтры
+            //добавляем сформированные фильтры
             this.FActiveFilters.Add(filterByAssemblyProtocolDescr);
             this.FActiveFilters.Add(filterByAssemblyStatusDescr);
 
-            //необходимые для работы режима протокола сборки фильтры созданы - включаем режим просмотра протокола сборки
-            this.AssemblyProtocolMode = true;
+            //устанавливать this.AssemblyProtocolMode=true перед применением фильтров нельзя - сроллинг и форма будут работать с жуткими тормозами
 
             //применяем фильтры
             this.ApplyFilters();
+
+            //узнаём идентификатор протокола сборки
+            int assemblyProtocolID = DbRoutines.AssemblyProtocolIDByDescr(descr);
+
+            if (assemblyProtocolID != -1)
+            {
+                //считываем данные для построения шапки протокола сборки
+                DbRoutines.LoadAssemblyProtocol(assemblyProtocolID, out bool? deviceModeView, out string assemblyJob, out bool? export, out int? deviceTypeID, out int? itav, out string modification, out string constructive, out int? deviceClass, out int? dUdt, out double? trr, out string tq, out double? tgt, out int? qrr, out string climatic, out int? omnity);
+
+                //наполняем шапку протокола сборки считанными из базы данных данными
+                this.PrepareHeadOfAssemblyProtocol(false, deviceModeView, assemblyJob, export, deviceTypeID, constructive, itav, modification, deviceClass, dUdt, trr, tq, tgt, qrr, climatic, omnity);
+
+                //ставим в конец очереди
+                this.FQueueManager.Enqueue(
+                                            delegate
+                                            {
+                                                //включение режима просмотра протокола сборки
+                                                this.AssemblyProtocolMode = true;
+
+                                                //перестраиваем столбцы которые отображают conditions/parameters в dgDevices
+                                                this.ReBuildCPColumnsForAssemblyProtocolMode();
+                                            }
+                                          );
+            }
         }
 
         private void ContextMenuCreateAssemblyProtocol_Click(object sender, RoutedEventArgs e)
@@ -2947,7 +2970,7 @@ namespace SCME.dbViewer
                 bool needResetAssemblyProtocolMode = (
                                                       (actualFilters.Count() != 2) ||
                                                       (countOfFiltersByAssemblyProtocolDescr != 1) || (countOfFiltersByAssemblyStatusDescr != 1) ||
-                                                      (filtersByAssemblyProtocolDescr.Single().Comparison != "=") || (filtersByAssemblyProtocolDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Comparison != "=") || (filtersByAssemblyStatusDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Values[0].Value.ToString() != assemblyDescr)                                                     
+                                                      (filtersByAssemblyProtocolDescr.Single().Comparison != "=") || (filtersByAssemblyProtocolDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Comparison != "=") || (filtersByAssemblyStatusDescr.Single().Values.Count() != 1) || (filtersByAssemblyStatusDescr.Single().Values[0].Value.ToString() != assemblyDescr)
                                                      );
 
 

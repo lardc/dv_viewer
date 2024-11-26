@@ -1839,25 +1839,33 @@ namespace SCME.dbViewer
                                                           //сразу ставим столбец в соответствии с расположением имён в вычисленном template
                                                           //извлекаем имя condition/parameter, оно будет в верхнем регистре
                                                           string columnName = ParseColumnName(header, Constants.StringDelimeter, out string temperatureCondition);
-                                                          columnName = SCME.Common.Routines.RemoveEndingNumber(columnName);
-                                                          string foundedName = template.FirstOrDefault(p => p == columnName);
-                                                          int indexInTemplate = (foundedName == null) ? -1 : Array.IndexOf(template, foundedName);
 
-                                                          if (indexInTemplate != -1)
+                                                          if (!string.IsNullOrEmpty(columnName))
                                                           {
-                                                              int count = 0;
+                                                              columnName = SCME.Common.Routines.RemoveEndingNumber(columnName);
 
-                                                              //вычисляем сколько столбцов в dataGrid уже создано по шаблону template
-                                                              for (int i = 0; i <= indexInTemplate; i++)
+                                                              if (!string.IsNullOrEmpty(columnName))
                                                               {
-                                                                  count += (from column in dataGrid.Columns
-                                                                            where !SCME.Common.Routines.RemoveEndingNumber(column.Header.ToString()).Contains(DbRoutines.cManually) &&
-                                                                                  SCME.Common.Routines.RemoveEndingNumber(column.Header.ToString()).ToUpper().EndsWith(template[i])
-                                                                            select column
-                                                                           ).Count();
-                                                              }
+                                                                  string foundedName = template.FirstOrDefault(p => p == columnName);
+                                                                  int indexInTemplate = string.IsNullOrEmpty(foundedName) ? -1 : Array.IndexOf(template, foundedName);
 
-                                                              index = Constants.StartConditionsParamersInDataGridIndex + count;
+                                                                  if (indexInTemplate != -1)
+                                                                  {
+                                                                      int count = 0;
+
+                                                                      //вычисляем сколько столбцов в dataGrid уже создано по шаблону template
+                                                                      for (int i = 0; i <= indexInTemplate; i++)
+                                                                      {
+                                                                          count += (from column in dataGrid.Columns
+                                                                                    where !SCME.Common.Routines.RemoveEndingNumber(column.Header.ToString()).Contains(DbRoutines.cManually) &&
+                                                                                          SCME.Common.Routines.RemoveEndingNumber(column.Header.ToString()).ToUpper().EndsWith(template[i])
+                                                                                    select column
+                                                                                   ).Count();
+                                                                      }
+
+                                                                      index = Constants.StartConditionsParamersInDataGridIndex + count;
+                                                                  }
+                                                              }
                                                           }
 
                                                           break;
@@ -1928,7 +1936,7 @@ namespace SCME.dbViewer
                 DateTime? ts = DateTime.TryParse(Convert.ToString(reader[index]), out DateTime dateTimeValue) ? (DateTime?)dateTimeValue : null;
                 SaveValue(false, item, name, ts);
 
-                name = Common.Constants.ApRecordCount;
+                name = Common.Constants.RecordCount;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
