@@ -24,6 +24,7 @@ namespace SCME.dbViewer
         //все обозначения в нижнем регистре, т.к. это содержимое сравнивается с содержимым от вызова Row.GetDynamicMemberNames();
         //именование содержимого - в терминах базы данных;
         //в этом списке есть как измеряемые параметры, так и условия измерений dvdt_voltagerate (dUdt)
+        //имена не должны содержать цифры
         public static readonly string[] OrderedColumnNamesInReport = { "sl_itm", "vdrm", "vrrm", "idrm", "irrm", "dvdt_voltagerate", "vtm", "prsm", "tq", "trr", "irm", "irr", "qrr", "igt", "vgt", "ih", "rg" };
 
         public const string Prof_ID = "PROF_ID";

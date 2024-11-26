@@ -12,6 +12,18 @@ using static SCME.dbViewer.ForParameters.ReportData;
 
 namespace SCME.dbViewer.ForParameters
 {
+    public class ColumnDefenition
+    {
+        public ColumnDefenition(string columnName, Common.Routines.XMLValues subject)
+        {
+            this.ColumnName = columnName;
+            this.Subject = subject;
+        }
+
+        public string ColumnName { get; set; }
+        public Common.Routines.XMLValues Subject { get; set; }
+    }
+
     public class ReportRecord
     {
         public ReportRecord(ReportData owner, DynamicObj row)
@@ -666,91 +678,116 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void HeaderCPToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, ref uint column)
+        public void FillOrderedColumnNamesInReport(List<ColumnDefenition> orderedColumnNamesInReport)
         {
-            //вывод наименований столбцов условий и параметров изделия
-            if (spreadsheetDocument != null)
+            //формирование списка сортированных и желаемых для отображения столбцов отчёта orderedColumnNamesInReport
+            //пользователь хочет видеть в отчёте только те параметры, которые перечислены в Constants.OrderedColumnNamesInReport + любые созданные вручную параметры                   
+            //в итоге в orderedColumnNamesInReport получаем все возможные параметры, которые в принципе может содержать отчёт и при этом они имеют желаемый порядок
+            int conditionsInDataSourceFirstIndex = this.ConditionsFirstIndex();
+            int parametersInDataSourceFirstIndex = this.ParametersFirstIndex();
+
+            //начитаем со столбцов условий и параметров 1-го температурного режима
+            if ((conditionsInDataSourceFirstIndex != -1) || (parametersInDataSourceFirstIndex != -1))
             {
-                uint columnsCount = 0;
+                int startIndex = (conditionsInDataSourceFirstIndex == -1) ? parametersInDataSourceFirstIndex : conditionsInDataSourceFirstIndex;
 
-                int conditionsInDataSourceFirstIndex = this.ConditionsFirstIndex();
-                int parametersInDataSourceFirstIndex = this.ParametersFirstIndex();
-
-                //идём по столбцам условий и параметров 1-го температурного режима
-                if ((conditionsInDataSourceFirstIndex != -1) || (parametersInDataSourceFirstIndex != -1))
+                if (orderedColumnNamesInReport != null)
                 {
-                    int startIndex = (conditionsInDataSourceFirstIndex == -1) ? parametersInDataSourceFirstIndex : conditionsInDataSourceFirstIndex;
-
+                    orderedColumnNamesInReport.Clear();
                     List<string> memberNames = this.Row.GetDynamicMemberNames().ToList();
 
-                    //пользователь хочет видеть в отчёте только те параметры, которые перечислены в Constants.OrderedColumnNamesInReport + любые созданные вручную параметры                   
-                    //в итоге в names получаем все возможные параметры, которые в принципе может содержать отчёт и при этом они имеют желаемый порядок
-                    IEnumerable<string> manuallyParameters = memberNames.Where(n => (memberNames.IndexOf(n) >= startIndex) && n.Contains("manuallyparameters") && !n.Contains(Constants.HiddenMarker));
-
-                    //каждый элемент списка manuallyParameters в своём имени содержит не нужные нам сейчас данные - извлекаем только имя параметра
-                    //имя параметра начинается за разделителем SCME.Common.Constants.FromXMLNameSeparator и до конца строки
-                    //дописываем в конец names все имеющиеся в обрабатываемом this.Row вручную созданные параметры, при этом порядок их следования пользователю не важен
-                    //формируем в names список всех имён параметров, которые хочет видеть пользователь: Constants.OrderedColumnNamesInReport + созданные вручную параметры
-                    List<string> names = Constants.OrderedColumnNamesInReport.ToList();
-                    names.AddRange(manuallyParameters.Select(n => n.Substring(n.IndexOf(SCME.Common.Constants.FromXMLNameSeparator) + SCME.Common.Constants.FromXMLNameSeparator.Length)));
-
-                    uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
-                    uint styleBoldIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
-
-                    foreach (string name in names)
+                    foreach (string columnName in Constants.OrderedColumnNamesInReport)
                     {
-                        //вычисляем список мест хранения в memberNames: по вычисленному name может быть найдено множество мест хранения с именем name
-                        //каждое из этих мест имеет свой температурный режим
-                        IEnumerable<string> listOfColumnNames = memberNames.Where(n => (memberNames.IndexOf(n) >= startIndex) && n.Contains(string.Concat(SCME.Common.Constants.FromXMLNameSeparator, name)) && !n.Contains(Constants.HiddenMarker));
+                        IEnumerable<string> listOfColumnNames = memberNames.Where(n => (memberNames.IndexOf(n) >= startIndex) && n.EndsWith(string.Concat(SCME.Common.Constants.FromXMLNameSeparator, columnName, Routines.EndingNumber(n))) && !n.Contains("manuallyparameters"));
 
-                        if (listOfColumnNames != null)
+                        if (listOfColumnNames.Count() > 0)
                         {
-                            foreach (string columnName in listOfColumnNames)
+                            if (listOfColumnNames.Count() > 1)
+                                listOfColumnNames = listOfColumnNames.OrderBy(n => string.Concat(columnName, string.Concat(new string('0', 3 - Routines.EndingNumber(n).Length), Routines.EndingNumber(n))));
+
+                            int columnIndex = memberNames.IndexOf(listOfColumnNames.FirstOrDefault());
+                            Common.Routines.XMLValues subject = (columnIndex < parametersInDataSourceFirstIndex) ? Common.Routines.XMLValues.Conditions : Common.Routines.XMLValues.Parameters;
+
+                            foreach (string name in listOfColumnNames)
                             {
-                                string trueName = Routines.ParseColumnName(columnName, out string test, out string temperatureCondition);
-
-                                if ((trueName != null) && Enum.TryParse(temperatureCondition, out TemperatureCondition tc))
-                                {
-                                    int columnIndex = memberNames.IndexOf(columnName);
-                                    Common.Routines.XMLValues subject = (columnIndex < parametersInDataSourceFirstIndex) ? Common.Routines.XMLValues.Conditions : (test == DbRoutines.cManually.ToUpper()) ? Common.Routines.XMLValues.ManuallyParameters : Common.Routines.XMLValues.Parameters;
-
-                                    //выводим температуру при которой выполнено измерение данного параметра
-                                    uint columnIndexInExcel = column + columnsCount;
-
-                                    string value = string.Concat(temperatureCondition, " ", this.TemperatureByColumnName(columnName));
-                                    Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value);
-                                    cell.StyleIndex = styleIndex;
-
-                                    //выводим имя условия/параметра
-                                    value = this.ColumnName(trueName, subject, tc);
-                                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel, value);
-                                    cell.StyleIndex = styleBoldIndex;
-
-                                    //выводим единицу измерения
-                                    string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnName);
-
-                                    if (this.Row.GetMember(nameOfUnitMeasure, out object unitMeasure))
-                                    {
-                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel, unitMeasure.ToString());
-                                        cell.StyleIndex = styleIndex;
-                                    }
-
-                                    //выводим норму
-                                    string nrmDescr = this.NrmByColumnName(columnName);
-
-                                    if (nrmDescr != null)
-                                    {
-                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndexInExcel, nrmDescr);
-                                        cell.StyleIndex = styleBoldIndex;
-                                    }
-
-                                    //считаем сколько мы вывели новых столбцов
-                                    columnsCount++;
-                                }
+                                ColumnDefenition columnDefenition = new ColumnDefenition(name, subject);
+                                orderedColumnNamesInReport.Add(columnDefenition);
                             }
                         }
                     }
+
+                    //в конец сформированного списка дописываем параметры созданные вручную как есть без какой либо сортировки
+                    IEnumerable<string> manuallyParameters = memberNames.Where(n => (memberNames.IndexOf(n) >= startIndex) && n.Contains("manuallyparameters") && !n.Contains(Constants.HiddenMarker));
+
+                    foreach (string columnName in manuallyParameters)
+                    {
+                        ColumnDefenition columnDefenition = new ColumnDefenition(columnName, Common.Routines.XMLValues.ManuallyParameters);
+                        orderedColumnNamesInReport.Add(columnDefenition);
+                    }
                 }
+            }
+        }
+
+        public void HeaderCPToExcel(SpreadsheetDocument spreadsheetDocument, List<ColumnDefenition> orderedColumnNamesInReport, ref uint rowNum, ref uint column)
+        {
+            //вывод наименований столбцов условий и параметров изделия
+            if ((spreadsheetDocument != null) && (orderedColumnNamesInReport.Count != 0))
+            {
+                uint columnsCount = 0;
+
+                //каждый элемент списка manuallyParameters в своём имени содержит не нужные нам сейчас данные - извлекаем только имя параметра
+                //имя параметра начинается за разделителем SCME.Common.Constants.FromXMLNameSeparator и до конца строки
+
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint styleBoldIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+
+                foreach (ColumnDefenition columnDefenition in orderedColumnNamesInReport)
+                {
+                    string trueName = Routines.ParseColumnName(columnDefenition.ColumnName, out string test, out string temperatureCondition);
+
+                    if ((trueName != null) && Enum.TryParse(temperatureCondition, out TemperatureCondition tc))
+                    {
+                        //выводим температуру при которой выполнено измерение данного параметра
+                        uint columnIndexInExcel = column + columnsCount;
+
+                        string value = string.Concat(temperatureCondition, " ", this.TemperatureByColumnName(columnDefenition.ColumnName));
+                        Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value);
+                        cell.StyleIndex = styleIndex;
+
+                        //выводим имя условия/параметра
+                        value = this.ColumnName(trueName, columnDefenition.Subject, tc);
+                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel, value);
+                        cell.StyleIndex = styleBoldIndex;
+
+                        //выводим единицу измерения
+                        string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnDefenition.ColumnName);
+
+                        if (this.Row.GetMember(nameOfUnitMeasure, out object unitMeasure))
+                        {
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel, unitMeasure.ToString());
+                        }
+                        else
+                            cell = OpenXmlRoutines.GetCell(spreadsheetDocument, rowNum + 2, columnIndexInExcel);
+
+                        cell.StyleIndex = styleIndex;
+
+                        //выводим норму
+                        string nrmDescr = this.NrmByColumnName(columnDefenition.ColumnName);
+
+                        if (nrmDescr == null)
+                        {
+                            cell = OpenXmlRoutines.GetCell(spreadsheetDocument, rowNum + 3, columnIndexInExcel);
+                        }
+                        else
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndexInExcel, nrmDescr);
+
+                        cell.StyleIndex = styleBoldIndex;
+
+                        //считаем сколько мы вывели новых столбцов
+                        columnsCount++;
+                    }
+                }
+
 
                 rowNum += 3;
                 column += columnsCount;
@@ -820,101 +857,79 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void BodyToExcel(SpreadsheetDocument spreadsheetDocument, ListOfCalculatorsMinMax listOfCalculatorsMinMax, uint rowNum, ref uint column)
+        public void BodyToExcel(SpreadsheetDocument spreadsheetDocument, List<ColumnDefenition> orderedColumnNamesInReport, ListOfCalculatorsMinMax listOfCalculatorsMinMax, uint rowNum, ref uint column)
         {
             //вывод значений условий и параметров
-            if (spreadsheetDocument != null)
+            if ((spreadsheetDocument != null) && (orderedColumnNamesInReport.Count() != 0))
             {
                 uint columnsCount = 0;
 
-                if (this.Row.GetMember(Constants.ConditionsInDataSourceFirstIndex, out object valueConditionsInDataSourceFirstIndex))
+                foreach (ColumnDefenition columnDefenition in orderedColumnNamesInReport)
                 {
-                    if (int.TryParse(valueConditionsInDataSourceFirstIndex.ToString(), out int conditionsInDataSourceFirstIndex))
+                    string trueName = Routines.ParseColumnName(columnDefenition.ColumnName, out string temperatureCondition);
+
+                    if (trueName != null)
                     {
-                        List<string> memberNames = this.Row.GetDynamicMemberNames().ToList();
-                        IEnumerable<string> manuallyParameters = memberNames.Where(n => (memberNames.IndexOf(n) >= conditionsInDataSourceFirstIndex) && n.Contains("manuallyparameters") && !n.Contains(Constants.HiddenMarker));
-
-                        List<string> names = Constants.OrderedColumnNamesInReport.ToList();
-                        names.AddRange(manuallyParameters.Select(n => n.Substring(n.IndexOf(SCME.Common.Constants.FromXMLNameSeparator) + SCME.Common.Constants.FromXMLNameSeparator.Length)));
-
-                        foreach (string name in names)
+                        //выводим значение условия/параметра
+                        if (this.Row.GetMember(columnDefenition.ColumnName, out object value))
                         {
-                            //вычисляем индекс места хранения в memberNames
-                            IEnumerable<string> listOfColumnNames = memberNames.Where(n => (memberNames.IndexOf(n) >= conditionsInDataSourceFirstIndex) && n.Contains(string.Concat(SCME.Common.Constants.FromXMLNameSeparator, name)) && !n.Contains(Constants.HiddenMarker));
-
-                            if (listOfColumnNames != null)
+                            if (value != null)
                             {
-                                foreach (string columnName in listOfColumnNames)
+                                uint columnIndexInExcel = column + columnsCount;
+
+                                //вычисляем значения min/max для определённых в listOfCalculatorsMinMax параметров
+                                string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnDefenition.ColumnName);
+                                PatternValues patternType = PatternValues.None;
+                                string hexForegroundColor = "0";
+                                bool bold = false;
+
+                                if (this.Row.GetMember(nameOfUnitMeasure, out object um))
                                 {
-                                    int columnIndex = memberNames.IndexOf(columnName);
-                                    string trueName = Routines.ParseColumnName(columnName, out string temperatureCondition);
+                                    listOfCalculatorsMinMax.Calc(columnIndexInExcel, trueName, um.ToString(), value.ToString());
 
-                                    if (trueName != null)
+                                    //проверяем входит ли выведенное значение параметра в норматив
+                                    if (Routines.IsInNrm(this.Row, columnDefenition.ColumnName) == NrmStatus.Defective)
                                     {
-                                        //выводим значение условия/параметра
-                                        if (this.Row.GetMember(columnName, out object value))
+                                        //выведенное значение за пределами норм - красим его
+                                        patternType = PatternValues.Solid;
+                                        hexForegroundColor = "FDE2F6";
+                                        bold = true;
+                                    }
+                                    else
+                                    {
+                                        //если выведенное значение принадлежит параметру из списка важных для пользователя параметров - красим его серым
+                                        if (this.Owner.FListOfImportantNamesInReport.Contains(columnDefenition.ColumnName))
                                         {
-                                            if (value != null)
-                                            {
-                                                uint columnIndexInExcel = column + columnsCount;
-
-                                                //вычисляем значения min/max для определённых в listOfCalculatorsMinMax параметров
-                                                string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnName);
-                                                PatternValues patternType = PatternValues.None;
-                                                string hexForegroundColor = "0";
-                                                bool bold = false;
-
-                                                if (this.Row.GetMember(nameOfUnitMeasure, out object um))
-                                                {
-                                                    listOfCalculatorsMinMax.Calc(columnIndexInExcel, trueName, um.ToString(), value.ToString());
-
-                                                    //проверяем входит ли выведенное значение параметра в норматив
-                                                    if (Routines.IsInNrm(this.Row, columnName) == NrmStatus.Defective)
-                                                    {
-                                                        //выведенное значение за пределами норм - красим его
-                                                        patternType = PatternValues.Solid;
-                                                        hexForegroundColor = "FDE2F6";
-                                                        bold = true;
-                                                    }
-                                                    else
-                                                    {
-                                                        //если выведенное значение принадлежит параметру из списка важных для пользователя параметров - красим его серым
-                                                        if (this.Owner.FListOfImportantNamesInReport.Contains(columnName))
-                                                        {
-                                                            patternType = PatternValues.Solid;
-                                                            hexForegroundColor = "EEEEEE";
-                                                        }
-                                                    }
-
-                                                    Cell cell = null;
-
-                                                    if (Routines.IsInteger(value.ToString(), out int iValue, out bool isDouble, out double dValue))
-                                                    {
-                                                        //имеем дело с Int
-                                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, iValue);
-                                                        cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
-                                                    }
-                                                    else
-                                                    {
-                                                        if (isDouble)
-                                                        {
-                                                            //имеем дело с Double
-                                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, dValue);
-                                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(double));
-                                                        }
-                                                        else
-                                                        {
-                                                            //имеем дело не с Int и не с Double - со строкой
-                                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value.ToString());
-                                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
-                                                        }
-                                                    }
-
-                                                    columnsCount++;
-                                                }
-                                            }
+                                            patternType = PatternValues.Solid;
+                                            hexForegroundColor = "EEEEEE";
                                         }
                                     }
+
+                                    Cell cell = null;
+
+                                    if (Routines.IsInteger(value.ToString(), out int iValue, out bool isDouble, out double dValue))
+                                    {
+                                        //имеем дело с Int
+                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, iValue);
+                                        cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
+                                    }
+                                    else
+                                    {
+                                        if (isDouble)
+                                        {
+                                            //имеем дело с Double
+                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, dValue);
+                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(double));
+                                        }
+                                        else
+                                        {
+                                            //имеем дело не с Int и не с Double - со строкой
+                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value.ToString());
+                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                                        }
+                                    }
+
+                                    columnsCount++;
                                 }
                             }
                         }
@@ -2230,6 +2245,7 @@ namespace SCME.dbViewer.ForParameters
                 //храним здесь сколько шапок было выведено
                 int needHeaderCount = 0;
 
+                List<ColumnDefenition> orderedColumnNamesInReport = new List<ColumnDefenition>();
                 ListOfCalculatorsMinMax listOfCalculatorsMinMax = new ListOfCalculatorsMinMax();
 
                 foreach (ReportRecord p in this)
@@ -2243,7 +2259,7 @@ namespace SCME.dbViewer.ForParameters
 
                     bool needHeader = (lastUsedColumnsSignature == string.Empty) || (lastUsedColumnsSignature != p.ColumnsSignature);
 
-                    lastGroupName = currentGroupName;
+                    lastGroupName = currentGroupName;                    
 
                     //выводим шапку если имеет место смена списка выведенных столбцов
                     uint headerRowNum = rowNum + 2;
@@ -2256,8 +2272,11 @@ namespace SCME.dbViewer.ForParameters
                         //выводим самую верхнюю часть шапки
                         p.TopHeaderToExcel(spreadsheetDocument, ref rowNum);
 
+                        //формируем список желаемых столбцов (которые пользователь хочет видеть в отчёте)                        
+                        p.FillOrderedColumnNamesInReport(orderedColumnNamesInReport);
+
                         //выводим шапку столбцов условий и параметров
-                        p.HeaderCPToExcel(spreadsheetDocument, ref rowNum, ref columnEnd);
+                        p.HeaderCPToExcel(spreadsheetDocument, orderedColumnNamesInReport, ref rowNum, ref columnEnd);
 
                         //выводим шапку идентификационных данных
                         p.HeaderToExcel(spreadsheetDocument, ref rowNum, column + 1);
@@ -2273,7 +2292,7 @@ namespace SCME.dbViewer.ForParameters
                     p.IdentityToExcel(spreadsheetDocument, rowNum, ref column);
 
                     //выводим тело
-                    p.BodyToExcel(spreadsheetDocument, listOfCalculatorsMinMax, rowNum, ref column);
+                    p.BodyToExcel(spreadsheetDocument, orderedColumnNamesInReport, listOfCalculatorsMinMax, rowNum, ref column);
 
                     //выводим статус
                     bool? isStatusOK = null;

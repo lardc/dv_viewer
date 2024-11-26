@@ -591,9 +591,6 @@ namespace SCME.dbViewer
             return string.Format("{0}{1}{2}{3}{4}", temperatureCondition, test, subj, SCME.Common.Constants.FromXMLNameSeparator, name);
         }
 
-
-
-
         public static int? MinDeviceClass(int? value1, int? value2)
         {
             int? result;
@@ -1142,7 +1139,8 @@ namespace SCME.dbViewer
 
         public static string TrimEndNumbers(string value)
         {
-            //вырезает все цифры начиная с конца принятого value и возвращает value без цифр
+            //вырезает цифры начиная с конца принятого value и возвращает value без цифр
+            //пример: 123abc456xyz789 => 123abc456xyz
             char[] trimChars = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
             return value.TrimEnd(trimChars);
