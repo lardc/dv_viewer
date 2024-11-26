@@ -10,14 +10,14 @@ namespace OpenXml
 {
     public static class OpenXmlRoutines
     {
-        public const uint DateNumberFormatId = 14;
-
         public enum NumberFormatId : uint
         {
             String = 0,
             Integer = 1,
             Double = 2,
-            Date = 14
+            Date = 14,
+            Time = 21,
+            DateTime = 22
         }
 
         private static string RCColumnNumToA1ColumnNum(uint columnIndex)
@@ -71,7 +71,7 @@ namespace OpenXml
 
             //создаём стиль по умолчанию, который будет применятся к ячейке без установки индекса стиля
             //в этом стиле все индексы могут ссылаться только на нулевые ID, другие значения стиль по умолчанию игнорирует
-            CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+            CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, NumberFormatId.String);
 
             //создаём зарезервированное значение заливки - в Fills оно будет иметь индекс 2
             StyleObjects(spreadsheetDocument, out Fonts fonts, out Fills fills, out Borders borders, out CellFormats cellFormats);
@@ -80,7 +80,7 @@ namespace OpenXml
             fills.Count++;
 
             //создаём список Sheets в Workbook
-            Sheets sheets = spreadsheetDocument.WorkbookPart.Workbook.AppendChild<Sheets>(new Sheets());
+            Sheets sheets = spreadsheetDocument.WorkbookPart.Workbook.AppendChild(new Sheets());
 
             return spreadsheetDocument;
         }
@@ -102,6 +102,7 @@ namespace OpenXml
 
             //добавляем созданный лист в список листов
             spreadsheetDocument.WorkbookPart.Workbook.Sheets.Append(sheet);
+            //spreadsheetDocument.WorkbookPart.Workbook.Save();
 
             return worksheetPart.Worksheet;
         }
@@ -136,6 +137,40 @@ namespace OpenXml
             }
         }
 
+        public static void FreezePane(Worksheet worksheet, uint freezeRowCount)
+        {
+            //замораживает freezeRowCount записей
+            //записи замораживаются как минимум с первой видимой записи в количестве freezeRowCount
+
+            if (worksheet != null)
+            {
+                //вычисляем номер записи, которая будет первой прокручиваемой записью из списка всех прокручиваемых записей
+                uint rowNum = 1 + freezeRowCount;
+
+                Pane pane = new Pane()
+                {
+                    VerticalSplit = new DoubleValue(double.Parse(freezeRowCount.ToString())),
+                    TopLeftCell = string.Concat("A", rowNum.ToString()),
+                    ActivePane = PaneValues.BottomLeft,
+                    State = PaneStateValues.Frozen
+                };
+
+                SheetView sheetView = new SheetView(pane)
+                {
+                    TabSelected = true,
+                    WorkbookViewId = new UInt32Value(0u)
+                };
+
+                SheetViews sheetViews = worksheet.ChildElements.OfType<SheetViews>().FirstOrDefault();
+
+                if (sheetViews == null)
+                {
+                    //важно, чтобы SheetViews располагался перед SheetData (если это не так - SheetData ссылается на SheetViews и не находит SheetViews когда SheetViews располагается после SheetData (это касается только Excel, Libre Calc прекрасно работает в такой ситуации))
+                    worksheet.InsertAt(new SheetViews(sheetView), 0);
+                }
+            }
+        }
+
         private static int InsertSharedStringItem(SpreadsheetDocument spreadsheetDocument, string value)
         {
             //формирование хранящихся в файле в SharedStringTable всего возможного списка значений
@@ -167,7 +202,7 @@ namespace OpenXml
 
             //раз мы здесь - value в SharedStringItem не найден - размещаем value в SharedStringItem и возвращаем его индекс
             shareStringPart.SharedStringTable.AppendChild(new SharedStringItem(new DocumentFormat.OpenXml.Spreadsheet.Text(value)));
-            shareStringPart.SharedStringTable.Save();
+            //shareStringPart.SharedStringTable.Save();
 
             return i;
         }
@@ -219,7 +254,7 @@ namespace OpenXml
         public static double WidthToOpenXml(double width, double systemScale)
         {
             //пересчитываем пиксели в ширину Excel с учётом текущего масштабирования в операционной системе: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/7902415
-            return ((width - 12 + 5) / 7d + 1) / systemScale;
+            return ((width - 7) / 7d + 1) / systemScale;
         }
 
         private static double HeightToOpenXml(double height)
@@ -298,17 +333,22 @@ namespace OpenXml
 
             if ((worksheet != null) && (!string.IsNullOrEmpty(cellReference)))
             {
-                MergeCells mergeCells = worksheet.Descendants<MergeCells>().First();
+                IEnumerable<MergeCells> ieMergeCells = worksheet.Descendants<MergeCells>();
 
-                if (mergeCells != null)
+                if (ieMergeCells.Count() > 0)
                 {
-                    //просматриваем всё множество merged ячеек чтобы найти в какую из merged ячеек входит ячейка с cellReference
-                    foreach (MergeCell mergeCell in mergeCells)
+                    MergeCells mergeCells = ieMergeCells.First();
+
+                    if (mergeCells != null)
                     {
-                        if (ParseInterval(mergeCell.Reference, out string bottom, out string top))
+                        //просматриваем всё множество merged ячеек чтобы найти в какую из merged ячеек входит ячейка с cellReference
+                        foreach (MergeCell mergeCell in mergeCells)
                         {
-                            if (IsMergedByHorizontal(bottom, top) && IsCellReferenceInInterval(cellReference, bottom, top))
-                                return true;
+                            if (ParseInterval(mergeCell.Reference, out string bottom, out string top))
+                            {
+                                if (IsMergedByHorizontal(bottom, top) && IsCellReferenceInInterval(cellReference, bottom, top))
+                                    return true;
+                            }
                         }
                     }
                 }
@@ -319,7 +359,7 @@ namespace OpenXml
             return false;
         }
 
-        public static Dictionary<uint, double> MaxWidthColumnsInPixel(SpreadsheetDocument spreadsheetDocument, double? rowHeight)
+        public static Dictionary<uint, double> MaxWidthColumnsInPixel(SpreadsheetDocument spreadsheetDocument, Worksheet worksheet, double? rowHeight)
         {
             //формирует в возвращаемом результате множество максимальных значений ширины столбцов хранящихся в sheetData
             //игнорирует Merged ячейки, ибо они плохо влияют на результат
@@ -327,11 +367,8 @@ namespace OpenXml
             //устанавливает высоту Row по самой высокой ячейке в Row если rowHeight=Null иначе сам вычисляет оптимальную высоту row и устанавливает её
             Dictionary<uint, double> result = new Dictionary<uint, double>();
 
-            WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-
-            if (worksheetPart != null)
+            if ((spreadsheetDocument != null) && (worksheet != null))
             {
-                Worksheet worksheet = worksheetPart.Worksheet;
                 SheetData sheetData = worksheet.Descendants<SheetData>().First();
 
                 if (sheetData != null)
@@ -352,7 +389,7 @@ namespace OpenXml
                             Cell cell = cells[i];
 
                             //получаем тест в соответствии с NumberFormatId из стиля, который применён к данной ячейке
-                            uint styleIndex = cell.StyleIndex;
+                            uint styleIndex = cell.StyleIndex ?? 0;
                             CellFormat cellFormat = (CellFormat)cellFormats.ElementAt((int)styleIndex);
 
                             DocumentFormat.OpenXml.Spreadsheet.Font font = (DocumentFormat.OpenXml.Spreadsheet.Font)fonts.ElementAt((int)cellFormat.FontId.Value);
@@ -370,6 +407,9 @@ namespace OpenXml
 
                                 //ширина шрифта в Excel задаётся в point, но size будет в pixel
                                 size = graphics.MeasureString(cellText, new System.Drawing.Font(fontName, fontSize, fontStyle, GraphicsUnit.Point));
+
+                                float cellPadding = size.Width * 0.0936f;
+                                size.Width = (int)Math.Round(cellPadding + size.Width);
                             }
 
                             //используем для вычисления максимальной ширины только ячейки, не являющиеся Merged ячейками ибо учёт Merged плохо сказывается на результате
@@ -403,41 +443,33 @@ namespace OpenXml
             return result;
         }
 
-        public static Columns Columns(SpreadsheetDocument spreadsheetDocument)
+        public static Columns Columns(Worksheet worksheet)
         {
             Columns columns = null;
 
-            if (spreadsheetDocument != null)
+            if (worksheet != null)
             {
-                WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
+                columns = worksheet.ChildElements.OfType<Columns>().FirstOrDefault();
 
-                if (worksheetPart != null)
+                if (columns == null)
                 {
-                    Worksheet worksheet = worksheetPart.Worksheet;
+                    //добавляем пустой список столбцов
+                    columns = new Columns();
 
-                    if (worksheet != null)
-                    {
-                        columns = worksheet.ChildElements.OfType<Columns>().FirstOrDefault();
+                    //важно, чтобы описание столбцов было вставлено перед SheetData
+                    worksheet.InsertAt(columns, 0);
 
-                        if (columns == null)
-                        {
-                            //добавляем пустой список столбцов
-                            columns = new Columns();
-
-                            //важно, чтобы описание столбцов было вставлено перед SheetData
-                            worksheet.InsertAt(columns, 0);
-                        }
-                    }
+                    //worksheet.Save();
                 }
             }
 
             return columns;
         }
 
-        public static void ColumnsAutoFit(SpreadsheetDocument spreadsheetDocument, double? rowHeight)
+        public static void ColumnsAutoFit(SpreadsheetDocument spreadsheetDocument, Worksheet worksheet, double? rowHeight)
         {
-            Dictionary<uint, double> maxWidthColumnsInPixel = MaxWidthColumnsInPixel(spreadsheetDocument, rowHeight);
-            Columns columns = Columns(spreadsheetDocument);
+            Dictionary<uint, double> maxWidthColumnsInPixel = MaxWidthColumnsInPixel(spreadsheetDocument, worksheet, rowHeight);
+            Columns columns = Columns(worksheet);
 
             if (columns.ChildElements.Count() != 0)
                 columns.RemoveAllChildren();
@@ -461,28 +493,24 @@ namespace OpenXml
                 {
                     result = new Row() { RowIndex = UInt32Value.FromUInt32(rowIndex) };
 
-                    if (worksheet.Descendants<Row>().Count() == 0)
-                    {
-                        worksheet.Descendants<SheetData>().First().Append(result);
-                    }
-                    else
-                    {
-                        rows = worksheet.Descendants<Row>().Where(r => r.RowIndex.Value > rowIndex);
+                    rows = worksheet.Descendants<Row>();
+                    SheetData sheetData = worksheet.Descendants<SheetData>().First();
 
-                        if (rows.Count() == 0)
-                        {
-                            worksheet.Descendants<SheetData>().First().Append(result);
-                        }
-                        else
-                        {
+                    switch (rows.Where(r => r.RowIndex.Value > rowIndex).Count())
+                    {
+                        case 0:
+                            sheetData.Append(result);
+                            break;
+
+                        default:
                             uint minRowIndex = rows.Min(r => r.RowIndex.Value);
-                            Row row = worksheet.Descendants<Row>().Where(r => r.RowIndex.Value == minRowIndex).First();
+                            Row row = rows.Where(r => r.RowIndex.Value == minRowIndex).First();
 
-                            worksheet.Descendants<SheetData>().First().InsertBefore(result, row);
-                        }
+                            sheetData.InsertBefore(result, row);
+                            break;
                     }
 
-                    worksheet.Save();
+                    //worksheet.Save();
                 }
                 else
                     result = rows.First();
@@ -491,15 +519,12 @@ namespace OpenXml
             return result;
         }
 
-        public static Cell GetCell(SpreadsheetDocument spreadsheetDocument, uint rowIndex, uint columnNumber)
+        public static Cell GetCell(Worksheet worksheet, uint rowIndex, uint columnNumber)
         {
             Cell result = null;
 
-            WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-
-            if (worksheetPart != null)
+            if (worksheet != null)
             {
-                Worksheet worksheet = worksheetPart.Worksheet;
                 Row row = GetRow(worksheet, rowIndex);
 
                 string cellReference = string.Concat(RCColumnNumToA1ColumnNum(columnNumber), rowIndex);
@@ -535,7 +560,7 @@ namespace OpenXml
                         }
                     }
 
-                    worksheet.Save();
+                    //worksheet.Save();
                 }
                 else
                     result = cells.First();
@@ -588,64 +613,76 @@ namespace OpenXml
                 int indexOfSharedString = InsertSharedStringItem(spreadsheetDocument, sharedStringValue);
 
                 cell.CellValue = new CellValue(indexOfSharedString.ToString());
-                cell.DataType = CellValues.SharedString; //new EnumValue<CellValues>(CellValues.SharedString);
+                cell.DataType = CellValues.SharedString;
             }
         }
 
-        public static Cell SetCellSharedValue(SpreadsheetDocument spreadsheetDocument, uint rowIndex, uint columnIndex, string sharedStringValue)
+        public static Cell SetCellSharedValue(SpreadsheetDocument spreadsheetDocument, Worksheet worksheet, uint rowIndex, uint columnIndex, string sharedStringValue)
         {
             //сохранение shared string
 
             //вставляем ячейку в созданный лист
-            Cell cell = GetCell(spreadsheetDocument, rowIndex, columnIndex);
+            Cell cell = GetCell(worksheet, rowIndex, columnIndex);
 
             //устанавливаем значение ячейки
             SetCellValueBySharedString(spreadsheetDocument, cell, sharedStringValue);
 
-            //save the new worksheet
-            WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-            worksheetPart.Worksheet.Save();
+            //worksheet.Save();
 
             return cell;
         }
 
-        public static Cell SetCellValue(SpreadsheetDocument spreadsheetDocument, uint rowIndex, uint columnIndex, object value)
+        public static void SetCellValue(Worksheet worksheet, uint rowIndex, uint columnIndex, object value, uint? styleIndex)
         {
             //сохранение принятого значения value в ячейку с координатами rowIndex, columnIndex
 
             //вставляем ячейку в созданный лист
-            Cell cell = GetCell(spreadsheetDocument, rowIndex, columnIndex);
+            Cell cell = GetCell(worksheet, rowIndex, columnIndex);
 
-            if (value != null)
+            if (cell != null)
             {
-                //устанавливаем значение ячейки
-                string typeOfValue = value.GetType().ToString();
-
-                switch (typeOfValue)
+                if (value != null)
                 {
-                    case "System.Double":
-                        SetCellValue(cell, double.Parse(value.ToString()));
-                        break;
+                    //устанавливаем значение ячейки
+                    string typeOfValue = value.GetType().ToString();
 
-                    case "System.Int32":
-                        SetCellValue(cell, int.Parse(value.ToString()));
-                        break;
+                    switch (typeOfValue)
+                    {
+                        case "System.Double":
+                            SetCellValue(cell, double.Parse(value.ToString()));
+                            break;
 
-                    case "System.DateTime":
-                        SetCellValue(cell, DateTime.Parse(value.ToString()));
-                        break;
+                        case "System.Int32":
+                            SetCellValue(cell, int.Parse(value.ToString()));
+                            break;
 
-                    default:
-                        SetCellValue(cell, value.ToString());
-                        break;
+                        case "System.DateTime":
+                            SetCellValue(cell, DateTime.Parse(value.ToString()));
+                            break;
+
+                        default:
+                            SetCellValue(cell, value.ToString());
+                            break;
+                    }
+
+                    //worksheet.Save();
                 }
 
-                //save the new worksheet
-                //WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-                //worksheetPart.Worksheet.Save();
-            }
+                if (styleIndex != null)
+                {
+                    cell.StyleIndex = UInt32Value.FromUInt32((uint)styleIndex);
 
-            return cell;
+                    /*
+                                    if (worksheet == null)
+                                    {
+                                        WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
+                                        worksheet = worksheetPart.Worksheet;
+                                    }
+
+                                    worksheet.Save();
+                    */
+                }
+            }
         }
 
         public static NumberFormatId NumberFormatIdByType(Type type)
@@ -669,84 +706,77 @@ namespace OpenXml
             }
         }
 
-        public static void SetRowsHeight(SpreadsheetDocument spreadsheetDocument, double height)
+        public static void SetRowsHeight(Worksheet worksheet, double height)
         {
-            WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-
-            if (worksheetPart != null)
+            if (worksheet != null)
             {
-                Worksheet worksheet = worksheetPart.Worksheet;
+                IEnumerable<Row> rows = worksheet.Descendants<Row>();
 
-                if (worksheet != null)
+                foreach (Row row in rows)
                 {
-                    IEnumerable<Row> rows = worksheet.Descendants<Row>();
+                    row.CustomHeight = BooleanValue.FromBoolean(true);
+                    row.Height = DoubleValue.FromDouble(height);
+                }
+            }
+        }
 
-                    foreach (Row row in rows)
+        private static void SetStyleForMergedCells(Worksheet worksheet, uint rowIndexBeg, uint columnIndexBeg, uint rowIndexEnd, uint columnIndexEnd, UInt32Value styleIndex)
+        {
+            //установка стиля для множества объединённых ячеек
+            if (worksheet != null)
+            {
+                IEnumerable<Row> rows = worksheet.Descendants<Row>().Where(r => r.RowIndex.Value >= rowIndexBeg && r.RowIndex.Value <= rowIndexEnd);
+
+                foreach (Row row in rows)
+                {
+                    for (uint columnIndex = columnIndexBeg; columnIndex <= columnIndexEnd; columnIndex++)
                     {
-                        row.CustomHeight = BooleanValue.FromBoolean(true);
-                        row.Height = DoubleValue.FromDouble(height);
+                        string cellReference = string.Concat(RCColumnNumToA1ColumnNum(columnIndex), row.RowIndex.Value);
+
+                        Cell cell = row.Elements<Cell>().Where(c => c.CellReference.Value == cellReference).FirstOrDefault();
+                        cell.StyleIndex = styleIndex;
                     }
                 }
             }
         }
 
-        private static void SetStyleForMergedCells(Worksheet worksheet, uint rowIndexBeg, uint columnIndexBeg, uint rowIndexEnd, uint columnIndexEnd, uint styleIndex)
+        public static void MergeCells(Worksheet worksheet, uint rowIndexBeg, uint columnIndexBeg, uint rowIndexEnd, uint columnIndexEnd, object value, uint? styleIndex)
         {
-            //установка стиля для множества объединённых ячеек
-            IEnumerable<Row> rows = worksheet.Descendants<Row>().Where(r => r.RowIndex.Value >= rowIndexBeg && r.RowIndex.Value <= rowIndexEnd);
-
-            foreach (Row row in rows)
-            {
-                for (uint columnIndex = columnIndexBeg; columnIndex <= columnIndexEnd; columnIndex++)
-                {
-                    string cellReference = string.Concat(RCColumnNumToA1ColumnNum(columnIndex), row.RowIndex.Value);
-
-                    Cell cell = row.Elements<Cell>().Where(c => c.CellReference.Value == cellReference).FirstOrDefault();
-                    cell.StyleIndex = UInt32Value.FromUInt32(styleIndex);
-                }
-            }
-        }
-
-        public static void MergeCells(SpreadsheetDocument spreadsheetDocument, uint rowIndexBeg, uint columnIndexBeg, uint rowIndexEnd, uint columnIndexEnd, object value, uint styleIndex)
-        {
-            WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
-
-            if (worksheetPart != null)
+            if (worksheet != null)
             {
                 //все объединяемые ячейки должны быть созданы
                 for (uint rowIndex = rowIndexBeg; rowIndex <= rowIndexEnd; rowIndex++)
                 {
                     for (uint columnIndex = columnIndexBeg; columnIndex <= columnIndexEnd; columnIndex++)
                     {
-                        Cell cell = GetCell(spreadsheetDocument, rowIndex, columnIndex);
-                        cell.StyleIndex = UInt32Value.FromUInt32(styleIndex);
+                        Cell cell = GetCell(worksheet, rowIndex, columnIndex);
+
+                        if (styleIndex != null)
+                            cell.StyleIndex = UInt32Value.FromUInt32((uint)styleIndex);
                     }
                 }
 
                 //все объединяемые ячейки успешно созданы и в них установлен принятый styleIndex
                 //в начальную ячейку пишем значение, которое будет видно в объединённых ячейках
-                SetCellValue(spreadsheetDocument, rowIndexBeg, columnIndexBeg, value);
+                SetCellValue(worksheet, rowIndexBeg, columnIndexBeg, value, null);
 
-                Worksheet worksheet = worksheetPart.Worksheet;
+                MergeCells mergeCells;
 
-                if (worksheet != null)
+                if (worksheet.Descendants<MergeCells>().Count() > 0)
                 {
-                    MergeCells mergeCells;
-
-                    if (worksheet.Descendants<MergeCells>().Count() > 0)
-                    {
-                        mergeCells = worksheet.Descendants<MergeCells>().First();
-                    }
-                    else
-                    {
-                        mergeCells = new MergeCells();
-                        worksheet.InsertAfter(mergeCells, worksheet.Descendants<SheetData>().First());
-                    }
-
-                    string reference = string.Concat(RCColumnNumToA1ColumnNum(columnIndexBeg), rowIndexBeg, ":", RCColumnNumToA1ColumnNum(columnIndexEnd), rowIndexEnd);
-                    mergeCells.Append(new MergeCell() { Reference = StringValue.FromString(reference) });
-                    mergeCells.Count = (mergeCells.Count == null) ? UInt32Value.FromUInt32(1) : UInt32Value.FromUInt32(mergeCells.Count.Value + 1);
+                    mergeCells = worksheet.Descendants<MergeCells>().First();
                 }
+                else
+                {
+                    mergeCells = new MergeCells();
+                    worksheet.InsertAfter(mergeCells, worksheet.Descendants<SheetData>().First());
+                }
+
+                string reference = string.Concat(RCColumnNumToA1ColumnNum(columnIndexBeg), rowIndexBeg, ":", RCColumnNumToA1ColumnNum(columnIndexEnd), rowIndexEnd);
+                mergeCells.Append(new MergeCell() { Reference = StringValue.FromString(reference) });
+                mergeCells.Count = (mergeCells.Count == null) ? UInt32Value.FromUInt32(1) : UInt32Value.FromUInt32(mergeCells.Count.Value + 1);
+
+                //worksheet.Save();
             }
         }
 
@@ -763,7 +793,7 @@ namespace OpenXml
             return result;
         }
 
-        private static DocumentFormat.OpenXml.Spreadsheet.Fill NewFill(PatternValues patternType, string hexForegroundColor)
+        private static Fill NewFill(PatternValues patternType, string hexForegroundColor)
         {
             Fill result = new Fill()
             {
@@ -797,10 +827,10 @@ namespace OpenXml
             {
                 result = new Border()
                 {
-                    LeftBorder = new LeftBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Thin },
-                    RightBorder = new RightBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Thin },
-                    TopBorder = new TopBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Thin },
-                    BottomBorder = new BottomBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Thin },
+                    LeftBorder = new LeftBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Hair },
+                    RightBorder = new RightBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Hair },
+                    TopBorder = new TopBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Hair },
+                    BottomBorder = new BottomBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.Hair },
                     DiagonalBorder = new DiagonalBorder(new DocumentFormat.OpenXml.Spreadsheet.Color() { Auto = BooleanValue.FromBoolean(true) }) { Style = BorderStyleValues.None }
                 };
             }
@@ -847,14 +877,17 @@ namespace OpenXml
             fonts = null;
             cellFormats = null;
 
-            WorkbookStylesPart workbookStylesPart = spreadsheetDocument.WorkbookPart.WorkbookStylesPart;
-
-            if (workbookStylesPart != null)
+            if (spreadsheetDocument != null)
             {
-                if (workbookStylesPart.Stylesheet != null)
+                WorkbookStylesPart workbookStylesPart = spreadsheetDocument.WorkbookPart.WorkbookStylesPart;
+
+                if (workbookStylesPart != null)
                 {
-                    fonts = workbookStylesPart.Stylesheet.Fonts;
-                    cellFormats = workbookStylesPart.Stylesheet.CellFormats;
+                    if (workbookStylesPart.Stylesheet != null)
+                    {
+                        fonts = workbookStylesPart.Stylesheet.Fonts;
+                        cellFormats = workbookStylesPart.Stylesheet.CellFormats;
+                    }
                 }
             }
         }
@@ -1006,7 +1039,7 @@ namespace OpenXml
             return null;
         }
 
-        public static uint CreateStyle(SpreadsheetDocument spreadsheetDocument, string fontName, byte fontSize, bool bold, PatternValues patternType, string hexForegroundColor, bool borderOn, HorizontalAlignmentValues horizontalAlignment, VerticalAlignmentValues verticalAlignment, Type type)
+        public static uint CreateStyle(SpreadsheetDocument spreadsheetDocument, string fontName, byte fontSize, bool bold, PatternValues patternType, string hexForegroundColor, bool borderOn, HorizontalAlignmentValues horizontalAlignment, VerticalAlignmentValues verticalAlignment, NumberFormatId numberFormatId)
         {
             Stylesheet stylesheet = StyleObjects(spreadsheetDocument, out Fonts fonts, out Fills fills, out Borders borders, out CellFormats cellFormats);
 
@@ -1040,7 +1073,6 @@ namespace OpenXml
                 borderIndex = borders.Count.Value - 1;
             }
 
-            NumberFormatId numberFormatId = NumberFormatIdByType(type);
             uint? cellFormatIndex = FindCellFormat(cellFormats, (uint)borderIndex, (uint)fillIndex, (uint)fontIndex, (uint)numberFormatId, horizontalAlignment, verticalAlignment);
 
             if (cellFormatIndex == null)
@@ -1051,7 +1083,10 @@ namespace OpenXml
                 cellFormatIndex = cellFormats.Count.Value - 1;
             }
 
-            stylesheet.Save();
+            /*
+            if (anyCreated)
+                stylesheet.Save();
+            */
 
             return (uint)cellFormatIndex;
         }

@@ -9,9 +9,6 @@ using SCME.CustomControls;
 using SCME.CustomControls.FilterAndSort;
 using SortDescription = SCME.CustomControls.FilterAndSort.SortDescription;
 using FilterDescription = SCME.CustomControls.FilterAndSort.FilterDescription;
-using System.Xml;
-using static SCME.dbViewer.Routines;
-using System.Linq;
 
 namespace SCME.dbViewer
 {

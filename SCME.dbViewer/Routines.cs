@@ -2412,7 +2412,7 @@ namespace SCME.dbViewer
                 case "МДЧ":
                 case "МДЧЛ":
                     //ITM, URRM создаём как ParamConditionDescrSecondLine, остальные как ParamConditionDescrFirstLine с целью различения при выводе в отчёт
-                    return new ParamConditionDescr[] { new ParamConditionDescrFirstLine("RT", "UBR", "В"), new ParamConditionDescrSecondLine("RT", "ITM", "А"), new ParamConditionDescrFirstLine("RT", "UFM", "В"), new ParamConditionDescrSecondLine("TM", "URRM", "В"), new ParamConditionDescrFirstLine("TM", "IRRM", "мА"), new ParamConditionDescrFirstLine("TM", "URSM", "В") };
+                    return new ParamConditionDescr[] { new ParamConditionDescrFirstLine("RT", "UBR", "В"), new ParamConditionDescrSecondLine("RT", "ITM", "А"), new ParamConditionDescrFirstLine("RT", "UFM", "В"), new ParamConditionDescrSecondLine("RT", "IFM", "А"), new ParamConditionDescrSecondLine("TM", "URRM", "В"), new ParamConditionDescrFirstLine("TM", "IRRM", "мА"), new ParamConditionDescrFirstLine("TM", "URSM", "В") };
             }
 
             return null;
