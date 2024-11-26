@@ -35,7 +35,7 @@ namespace SCME.dbViewer
         //при выборе профиля пользователь хочет видеть код Item, который обрабатывается по выбранному ПЗ 
         private string SelectedItem { get; set; } = null;
 
-        //профиль для которого были загружены данные (строки и столбцы отображаемые в данной форме) из базы данных
+        //профиль для которого были загружены из базы данных либо руками введены данные (строки и столбцы отображаемые в данной форме)
         private string ProfileGUID { get; set; } = null;
 
         //последний столбец this.DgDevices который имел фокус ввода 
@@ -44,12 +44,19 @@ namespace SCME.dbViewer
         //выбранный (по нажатию кнопки btSelectProfile) пользователем профиль из списка профилей
         public ProfileData ProfileData { get; set; } = null;
 
-        public ManualInputDevices()
+        //дескриптор окна визуализации ожидания
+        private IntPtr FProcessWaitVisualizerHWnd = IntPtr.Zero;
+        private IntPtr ProcessWaitVisualizerHWnd
+        {
+            get { return this.FProcessWaitVisualizerHWnd; }
+        }
+
+        public ManualInputDevices(IntPtr processWaitVisualizerHWnd)
         {
             InitializeComponent();
 
+            this.FProcessWaitVisualizerHWnd = processWaitVisualizerHWnd;
             this.CreateDeviceCodeColumn();
-
             this.FDataSource.Columns.Add(ColumnDevID);
         }
 
@@ -70,13 +77,11 @@ namespace SCME.dbViewer
                     int index = this.CmbProfileName.Items.IndexOf(item);
                     this.CmbProfileName.SelectedIndex = index;
 
-                    this.LoadData(groupName, item.ProfGUID);
+                    //this.LoadData(groupName, item.ProfGUID);
                 }
             }
 
             bool? result = this.ShowDialog();
-
-            this.DeleteManuallyCreatedDevices();
 
             return result;
         }
@@ -101,9 +106,10 @@ namespace SCME.dbViewer
             this.CmbProfileName.SelectedIndex = (this.CmbProfileName.Items.Count > 0) ? 0 : -1;
         }
 
+        /*
         private void DeleteManuallyCreatedDevices()
         {
-            //если форма отображает один единственный столбец с измерениями (изделиями) - те из них, которые были создны вручную должны быть удалены
+            //если форма отображает один единственный столбец с измерениями (изделиями) - те из них, которые были созданы вручную должны быть удалены
             if ((this.DgDevices.Items.Count > 0) && (this.DgDevices.Columns.Count == 1))
             {
                 System.Data.SqlClient.SqlConnection connection = SCME.Types.DBConnections.Connection;
@@ -154,6 +160,7 @@ namespace SCME.dbViewer
                     connection.Close();
             }
         }
+        */
 
         private bool CheckTemperatureMode(string selectedProfileGUID)
         {
@@ -163,7 +170,7 @@ namespace SCME.dbViewer
             // true - выбранный пользователем профиль имеет тот же температурный режим, что у профиля this.FProfileGUID
             // false - температурный режим выбранного пользователем профиля не совпадает с температурным режимом профиля this.FProfileGUID
 
-            //пока пользователь не создал ни одного столбца - dgDevices содержит только один столбец обозначения изделий
+            //пока пользователь не создал ни одного столбца - dgDevices содержит только один столбец обозначения изделий, принадлежность отображаемых данных к температурному режиму отсутствует
             if ((this.ProfileGUID != null) && (this.DgDevices.Columns.Count > 1))
             {
                 double? temperature = DbRoutines.TemperatureByProfileGUID(this.ProfileGUID);
@@ -179,10 +186,6 @@ namespace SCME.dbViewer
                 Types.Profiles.TemperatureCondition selectedTemperatureCondition = Routines.TemperatureConditionByTemperature((double)selectedTemperature);
 
                 bool result = (temperatureCondition == selectedTemperatureCondition);
-
-                //если температурные режимы текущего установленного и выбранного пользователем профилей не совпадают - ругаемся
-                if (!result)
-                    MessageBox.Show(Properties.Resources.DifferentTemperatureModes, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
 
                 return result;
             }
@@ -286,8 +289,8 @@ namespace SCME.dbViewer
             {
                 ColumnName = bindPath,
                 DataType = typeof(string),//double
-                DefaultValue = 0,
-                AllowDBNull = false,
+                DefaultValue = DBNull.Value,//0,
+                AllowDBNull = true,//false
                 Unique = false,
                 AutoIncrement = false
             };
@@ -354,10 +357,17 @@ namespace SCME.dbViewer
                     return;
                 }
 
+                if (this.FDataSource.Rows.Count == 0)
+                {
+                    MessageBox.Show(Properties.Resources.ErrorCreateColumnByListOfRecordsIsEmpty, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+
+                    return;
+                }
+
                 //создание столбца в dgDevices
-                //пока не выбрано ПЗ - не будет создан столбец для работы с кодом изделия, нам важно, чтобы он был под индексом ноль
-                //поэтому пока не выбрано ПЗ - не позволяем выполнение создания новых столбцов
-                string groupName = tbGroupName.Text.Trim();
+                //пока не выбрано ПЗ - не будет создан столбец для работы с кодом изделия
+                //не выбрано ПЗ - не позволяем создание новых столбцов
+                string groupName = string.IsNullOrEmpty(tbGroupName.Text) ? null : tbGroupName.Text.Trim();
 
                 if (string.IsNullOrEmpty(groupName) || (groupName == Properties.Resources.NotSetted))
                 {
@@ -366,24 +376,39 @@ namespace SCME.dbViewer
                     return;
                 }
 
-                string profGUID = null;
                 int profID = -1;
 
-                if (this.CmbProfileName.SelectedItem is ProfileData profileData)
+                if (this.ProfileGUID == null)
                 {
-                    profGUID = profileData.ProfGUID;
-                    profID = profileData.ProfID;
+                    if ((this.CmbProfileName.SelectedItem != null) && (this.CmbProfileName.SelectedItem is ProfileData profileData))
+                    {
+                        this.ProfileGUID = profileData.ProfGUID;
+                        profID = profileData.ProfID;
+                    }
                 }
 
-                if ((profGUID == null) || (profID == -1))
+                if (this.ProfileGUID == null)
                 {
                     MessageBox.Show(string.Format(Properties.Resources.SubjectNotSetted, Properties.Resources.ProfileName, Properties.Resources.NotSetted), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
 
                     return;
                 }
 
-                //показываем пользователю содержимое справочника параметров, в котором он может создавать и выбирать созданный параметр
-                double? temperature = DbRoutines.TemperatureByProfileGUID(profGUID);
+                if (profID == -1)
+                {
+                    profID = DbRoutines.ProfileIDByProfileGUID(this.ProfileGUID);
+                }
+
+                //убеждаемся, что по this.ProfileGUID корректно вычислен идентификатор профиля
+                if (profID == -1)
+                {
+                    MessageBox.Show(string.Format(Properties.Resources.SubjectNotSetted, Properties.Resources.ProfileName, Properties.Resources.NotSetted), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+
+                    return;
+                }
+
+                //показываем пользователю содержимое справочника параметров, в котором он может создавать и выбирать созданный им параметр
+                double? temperature = DbRoutines.TemperatureByProfileGUID(this.ProfileGUID);
                 Types.Profiles.TemperatureCondition tc = (temperature == null) ? Types.Profiles.TemperatureCondition.None : Routines.TemperatureConditionByTemperature((double)temperature);
                 List<Types.Profiles.TemperatureCondition> listTemperatureCondition = new List<Types.Profiles.TemperatureCondition>()
                 {
@@ -510,10 +535,10 @@ namespace SCME.dbViewer
 
             string selectedProfGUID = null;
 
-            if (this.CmbProfileName.SelectedItem is ProfileData selectedProfileData)
+            if ((this.CmbProfileName.SelectedItem != null) && (this.CmbProfileName.SelectedItem is ProfileData selectedProfileData))
                 selectedProfGUID = selectedProfileData.ProfGUID;
 
-            if (selectedProfGUID == null)
+            if ((this.ProfileGUID == null) || (selectedProfGUID == null))
             {
                 //профиль не выбран пользователем, либо его обозначение не корректно - ругаемся и прекращаем исполнение данной реализации
                 MessageBox.Show(string.Concat(Properties.Resources.Profile, ". ", Properties.Resources.ValueIsNotGood, ". "), string.Concat(Properties.Resources.CheckValue, " ", Properties.Resources.Profile), MessageBoxButton.OK, MessageBoxImage.Exclamation);
@@ -521,152 +546,192 @@ namespace SCME.dbViewer
                 return;
             }
 
-            string groupName = this.tbGroupName.Text.Trim();
-            int? groupID = null;
-
-            if (!string.IsNullOrEmpty(groupName) && (groupName != Properties.Resources.NotSetted))
+            //заполнено оба поля: this.ProfileGUID, selectedProfGUID
+            //проверяем, что нет конфликта по температурному режиму
+            if (!this.CheckTemperatureMode(selectedProfGUID))
             {
-                //ПЗ выбран из списка ПЗ, существующих в SL, но в базе данных КИП СПП такое ПЗ отсутствует - создаём его
-                //получаем от базы данных идентификатор ПЗ имеющий обозначение groupName
-                groupID = Types.DbRoutines.CreateGroupID(groupName);
-            }
-            else
-            {
-                //пользователь не выбрал ПЗ, либо его обозначение не корректно - ругаемся и прекращаем исполнение данной реализации
-                MessageBox.Show(string.Concat(Properties.Resources.GroupName, ". ", Properties.Resources.ValueIsNotGood, ". "), string.Concat(Properties.Resources.CheckValue, " ", Properties.Resources.GroupName), MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                //температурные режимы текущего установленного профиля this.ProfileGUID и выбранного пользователем selectedProfGUID не совпадают - ругаемся
+                MessageBox.Show(Properties.Resources.DifferentTemperatureModes, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
 
                 return;
             }
 
-            //получаем значение для поля USR
-            long userID = ((MainWindow)this.Owner).FUserID;
-            Types.DbRoutines.FullUserNameByUserID(userID, out string fullUserName);
-
-            //если что-то не было переписано в dgDevices.ItemsSource - сделаем это
-            this.DgDevices.CommitEdit();
-
-            //выполняем сохранение списка введённых измерений
-            //проверки на уникальность обозначения кода изделия и не null значения обеспечивает dgDevices
-            System.Data.SqlClient.SqlConnection connection = SCME.Types.DBConnections.Connection;
-
-            bool connectionOpened = false;
-
-            if (!DbRoutines.IsDBConnectionAlive(connection))
-            {
-                connection.Open();
-                connectionOpened = true;
-            }
-
-            string deviceCode = null;
-
-            System.Data.SqlClient.SqlTransaction transaction = connection.BeginTransaction();
+            SCME.Common.Routines.ShowProcessWaitVisualizer(this, this.ProcessWaitVisualizerHWnd);
 
             try
             {
-                foreach (DataRow row in this.FDataSource.Rows)
+                string groupName = string.IsNullOrEmpty(this.tbGroupName.Text) ? null : this.tbGroupName.Text.Trim();
+                int? groupID = null;
+
+                if (!string.IsNullOrEmpty(groupName) && (groupName != Properties.Resources.NotSetted))
                 {
-                    //флаг - 'Место для хранения результата измерений создано сейчас'
-                    bool devIDCreatedNow = false;
-                    int devID = -1;
+                    //ПЗ выбран из списка ПЗ, существующих в SL, получаем от нашей базы данных идентификатор ПЗ имеющий обозначение groupName, если его не существует - он будет создан
+                    groupID = Types.DbRoutines.CreateGroupID(groupName);
+                }
+                else
+                {
+                    //пользователь не выбрал ПЗ, либо его обозначение не корректно - ругаемся и прекращаем исполнение данной реализации
+                    MessageBox.Show(string.Concat(Properties.Resources.GroupName, ". ", Properties.Resources.ValueIsNotGood, ". "), string.Concat(Properties.Resources.CheckValue, " ", Properties.Resources.GroupName), MessageBoxButton.OK, MessageBoxImage.Exclamation);
 
-                    //извлекаем из row код изделия
-                    int columnIndex = row.Table.Columns.IndexOf(ColumnCodeName);
+                    return;
+                }
 
-                    if (columnIndex != -1)
+                //получаем значение для поля USR
+                long userID = ((MainWindow)this.Owner).FUserID;
+                Types.DbRoutines.FullUserNameByUserID(userID, out string fullUserName);
+
+                //если что-то не было переписано в dgDevices.ItemsSource - сделаем это
+                this.DgDevices.CommitEdit();
+
+                //выполняем сохранение списка введённых измерений
+                //проверки на уникальность обозначения кода изделия и не null значения обеспечивает dgDevices
+                System.Data.SqlClient.SqlConnection connection = SCME.Types.DBConnections.Connection;
+
+                bool connectionOpened = false;
+
+                if (!DbRoutines.IsDBConnectionAlive(connection))
+                {
+                    connection.Open();
+                    connectionOpened = true;
+                }
+
+                string deviceCode = null;
+
+                System.Data.SqlClient.SqlTransaction transaction = connection.BeginTransaction();
+
+                try
+                {
+                    foreach (DataRow row in this.FDataSource.Rows)
                     {
-                        //смотрим с чем мы имеем дело: с созданием нового изделия или редактированием уже существующего в базе данных    
-                        deviceCode = row[columnIndex].ToString().Trim();
+                        //флаг - 'Место для хранения результата измерений создано сейчас'
+                        bool devIDCreatedNow = false;
+                        int devID = -1;
 
-                        if (!string.IsNullOrEmpty(deviceCode))
+                        //извлекаем из row код изделия
+                        int columnIndex = row.Table.Columns.IndexOf(ColumnCodeName);
+
+                        if (columnIndex != -1)
                         {
-                            //если пользователь ввёл порядковый номер изделия - выполняем сохранение
-                            //дописываем к коду изделия часть обозначения ПЗ
-                            deviceCode = string.Concat(deviceCode, this.PartCode());
+                            //смотрим с чем мы имеем дело: с созданием нового изделия или редактированием уже существующего в базе данных    
+                            deviceCode = row[columnIndex].ToString().Trim();
 
-                            columnIndex = row.Table.Columns.IndexOf(ColumnDevID);
-
-                            if (columnIndex != -1)
+                            if (!string.IsNullOrEmpty(deviceCode))
                             {
-                                object objDevID = row[columnIndex];
+                                //если пользователь ввёл порядковый номер изделия - выполняем сохранение
+                                //дописываем к коду изделия часть обозначения ПЗ
+                                deviceCode = string.Concat(deviceCode, this.PartCode());
 
-                                if ((objDevID == DBNull.Value) || (this.ProfileGUID != selectedProfGUID))
+                                columnIndex = row.Table.Columns.IndexOf(ColumnDevID);
+
+                                if (columnIndex != -1)
                                 {
-                                    //изделие только что введено пользователем, значение его идентификатора DEV_ID нам не известно или значение идентификатора DEV_ID известно, выполняется копирование отображаемых параметров под другим профилем
-                                    //может быть два варианта:
-                                    // - изделие с кодом deviceCode, groupID, profileGUID в таблице DEVICES не существует - требуется его создание;
-                                    // - изделие с кодом deviceCode, groupID, profileGUID в таблице DEVICES уже создано - используем его идентификатор
-                                    devID = Types.DbRoutines.IsDeviceExist(connection, transaction, (int)groupID, deviceCode, selectedProfGUID);
+                                    object objDevID = row[columnIndex];
 
-                                    //если изделие с заданными реквизитами не существует - единственный способ выполнить его сохранение - создать его
-                                    if (devID == -1)
+                                    if ((objDevID == DBNull.Value) || (this.ProfileGUID != selectedProfGUID))
                                     {
-                                        //изделие не существует - выполняем его создание
-                                        devID = DbRoutines.CreateDevice(connection, transaction, (int)groupID, selectedProfGUID, deviceCode, fullUserName, false);
+                                        //изделие только что введено пользователем, значение его идентификатора DEV_ID нам не известно или значение идентификатора DEV_ID известно, выполняется копирование отображаемых параметров под другим профилем
+                                        //может быть два варианта:
+                                        // - изделие с кодом deviceCode, groupID, profileGUID в таблице DEVICES не существует - требуется его создание;
+                                        // - изделие с кодом deviceCode, groupID, profileGUID в таблице DEVICES уже создано - используем его идентификатор
+                                        devID = Types.DbRoutines.IsDeviceExist(connection, transaction, (int)groupID, deviceCode, selectedProfGUID);
 
-                                        //запоминаем в текущей записи идентификатор devID только что созданной в таблице DEVICES записи
-                                        row[columnIndex] = devID;
-
-                                        //запоминаем что мы только что создали место хранения результата измерения devID
-                                        devIDCreatedNow = true;
-                                    }
-                                }
-                                else
-                                {
-                                    if (int.TryParse(objDevID.ToString(), out devID))
-                                    {
-                                        //devID существует
-                                        //если данное измерение создано вручную - пользователю можно изменять его наименование
-                                        //но если это не так и пользователь пытается редактировать наименование - ругаемся и не разрешаем это
-                                        if (DbRoutines.DeviceCodeByDevID(connection, transaction, devID) != deviceCode)
+                                        //если измерение с заданными реквизитами не существует и для него определены сохраняемые параметры - создаём его
+                                        if ((devID == -1) && (this.DgDevices.Columns.Count > 1))
                                         {
-                                            if (DbRoutines.IsDeviceCreatedManually(connection, transaction, devID))
+                                            //изделие не существует - выполняем его создание
+                                            devID = DbRoutines.CreateDevice(connection, transaction, (int)groupID, selectedProfGUID, deviceCode, fullUserName);
+
+                                            //запоминаем в текущей записи идентификатор devID только что созданной в таблице DEVICES записи
+                                            row[columnIndex] = devID;
+
+                                            //запоминаем что мы только что создали место хранения результата измерения devID
+                                            devIDCreatedNow = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (int.TryParse(objDevID.ToString(), out devID))
+                                        {
+                                            //devID существует
+                                            bool deviceCreatedManually = (DbRoutines.IsDeviceCreatedManually(connection, transaction, devID));
+
+                                            //проверим определил ли по данному измерению пользователь хотя бы один параметр
+                                            if (this.DgDevices.Columns.Count > 1)
                                             {
-                                                DbRoutines.UpdateDeviceCode(connection, transaction, devID, deviceCode);
+                                                if (DbRoutines.DeviceCodeByDevID(connection, transaction, devID) != deviceCode)
+                                                {
+                                                    if (deviceCreatedManually)
+                                                    {
+                                                        //данное измерение создано вручную - пользователю можно изменять его наименование
+                                                        DbRoutines.UpdateDeviceCode(connection, transaction, devID, deviceCode);
+                                                    }
+                                                    else
+                                                    {
+                                                        //но если это не так и пользователь пытается редактировать наименование - ругаемся и не разрешаем это
+                                                        throw new Exception(string.Concat(Properties.Resources.ChangeProhibited, ". ", Properties.Resources.NotCreatedByHand, "."));
+                                                    }
+                                                }
                                             }
                                             else
-                                                throw new Exception(string.Concat(Properties.Resources.ChangeProhibited, ". ", Properties.Resources.NotCreatedByHand, "."));
+                                            {
+                                                //по данному измерению пользователь не определил ни одного параметра - необходимость в данном измерении отсутствует
+                                                if (deviceCreatedManually)
+                                                    DbRoutines.DeleteFromDevices(connection, transaction, devID);
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            if (devID != -1)
-                            {
-                                //если измерение было создано не сейчас - в нём могут быть свои параметры созданные вручную, чтобы не было конфликта в уникальности имён - удаляем все параметры созданные вручную у давно созданного измерения с идентификатором devID
-                                if (!devIDCreatedNow)
-                                    DbRoutines.DeleteFromManualInputDevParamByDevID(connection, transaction, devID);
-
-                                //извлекаем значения введённых параметров из текущего row
-                                for (int parameterColumnIndex = columnIndex + 1; parameterColumnIndex < row.Table.Columns.Count; parameterColumnIndex++)
+                                if (devID != -1)
                                 {
-                                    //извлекаем идентификатор параметра
-                                    if (int.TryParse(row.Table.Columns[parameterColumnIndex].ColumnName, out int manualInputParamID))
-                                    {
-                                        //извлекаем значение параметра
-                                        string manualInputParamValue = Common.Routines.SimpleFloatingValueToFloatingValue(row[parameterColumnIndex].ToString());
+                                    //если измерение было создано не сейчас - в нём могут быть свои параметры созданные вручную, чтобы не было конфликта в уникальности имён - удаляем все параметры созданные вручную у давно созданного измерения с идентификатором devID
+                                    if (!devIDCreatedNow)
+                                        DbRoutines.DeleteFromManualInputDevParamByDevID(connection, transaction, devID);
 
-                                        if (double.TryParse(manualInputParamValue, out double dManualInputParamValue))
+                                    //извлекаем значения введённых параметров из текущего row
+                                    for (int parameterColumnIndex = columnIndex + 1; parameterColumnIndex < row.Table.Columns.Count; parameterColumnIndex++)
+                                    {
+                                        //извлекаем идентификатор параметра
+                                        if (int.TryParse(row.Table.Columns[parameterColumnIndex].ColumnName, out int manualInputParamID))
+                                        {
+                                            //извлекаем значение параметра
+                                            string manualInputParamValue = Common.Routines.SimpleFloatingValueToFloatingValue(row[parameterColumnIndex].ToString());
+
+                                            double? dManualInputParamValue = null;
+
+                                            if (!string.IsNullOrEmpty(manualInputParamValue))
+                                            {
+                                                if (double.TryParse(manualInputParamValue, out double dValue))
+                                                    dManualInputParamValue = dValue;
+                                            }
+
                                             Types.DbRoutines.SaveToManualInputDevParam(connection, transaction, devID, manualInputParamID, dManualInputParamValue);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+                catch (Exception exc)
+                {
+                    transaction.Rollback();
+                    MessageBox.Show(string.Concat("'", deviceCode, "'", Constants.StringDelimeter, Properties.Resources.SaveFailed, Constants.StringDelimeter, exc.Message), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+
+                    return;
+                }
+
+                transaction.Commit();
+
+                //если данная реализация открыла соединение к БД, то она же его должна закрыть
+                //если  оединение к БД было открыто в этой реализации - закрываем его
+                if (connectionOpened)
+                    connection.Close();
             }
-            catch (Exception exc)
+            finally
             {
-                transaction.Rollback();
-                MessageBox.Show(string.Concat("'", deviceCode, "'", Constants.StringDelimeter, Properties.Resources.SaveFailed, Constants.StringDelimeter, exc.Message), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
+                SCME.Common.Routines.HideProcessWaitVisualizer(this.ProcessWaitVisualizerHWnd);
             }
-
-            transaction.Commit();
-
-            //если данная реализация открыла соединение к БД, то она же его должна закрыть
-            //если  оединение к БД было открыто в этой реализации - закрываем его
-            if (connectionOpened)
-                connection.Close();
 
             //если мы сюда добрались и было что сохранять - сохранение выполнено успешно
             if (this.FDataSource.Rows.Count != 0)
@@ -782,6 +847,9 @@ namespace SCME.dbViewer
 
             //удаляем все столбцы в this.FDataSource кроме ColumnCodeName и ColumnDevID
             this.RemoveDataSourceColumns();
+
+            //все загруженные и введённые данные удалены - поэтому
+            this.ProfileGUID = null;
         }
 
         private void LoadData(string groupName, string profileGuid)
@@ -1290,20 +1358,6 @@ namespace SCME.dbViewer
 
             if (obj is ObjectDataProvider objectDataProvider)
                 objectDataProvider.Refresh();
-        }
-
-        private void CmbProfileName_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if ((sender is ComboBox cmb) && (cmb.SelectedItem != null) && (cmb.SelectedItem is ProfileData selectedItem))
-            {
-                //возвращаем обозначение предыдущего выбранного профиля если температурные режимы не совпадают
-                if (!this.CheckTemperatureMode(selectedItem.ProfGUID))
-                {
-                    //выбранный пользователем профиль имеет другой температурный режим - возвращаем профиль this.FProfileGUID
-                    ProfileData item = cmb.Items.OfType<ProfileData>().FirstOrDefault(i => i.ProfGUID == this.ProfileGUID);
-                    cmb.SelectedIndex = cmb.Items.IndexOf(item);
-                }
-            }
         }
     }
 

@@ -67,7 +67,7 @@ namespace SCME.dbViewer
             {
                 DeviceReferenceEditor deviceReferenceEditor = new DeviceReferenceEditor();
 
-                if (deviceReferenceEditor.ShowModal(null, out int? createdDeviceReferenceID, 0, -1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null) ?? false)
+                if (deviceReferenceEditor.ShowModal(null, out int? createdDeviceReferenceID, 0, -1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null) ?? false)
                 {
                     //пользователь выполнил сохранение
                     this.OnPropertyChanged();
@@ -143,6 +143,9 @@ namespace SCME.dbViewer
                 obj = this.DgDeviceReferences.ValueFromSelectedRow("UTMMAX");
                 decimal? utmMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
 
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("UFMMAX");
+                decimal? ufmMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
+
                 obj = this.DgDeviceReferences.ValueFromSelectedRow("IDRMMAX");
                 int? idrmMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
 
@@ -180,7 +183,7 @@ namespace SCME.dbViewer
 
                 DeviceReferenceEditor deviceReferenceEditor = new DeviceReferenceEditor();
 
-                if (deviceReferenceEditor.ShowModal(deviceReferenceID, out int? createdDeviceReferenceID, itav, deviceTypeID, constructive, modification, igtMax, ugtMax, tgtMax, ubrMin, udsmMin, ursmMin, utmMax, idrmMax, irrmMax, dUdtMin, prsmMin, trrMin, tqMin, risolMin, uisolMin, qrrMax, tjMax, caseType, utmCorrection) ?? false)
+                if (deviceReferenceEditor.ShowModal(deviceReferenceID, out int? createdDeviceReferenceID, itav, deviceTypeID, constructive, modification, igtMax, ugtMax, tgtMax, ubrMin, udsmMin, ursmMin, utmMax, ufmMax, idrmMax, irrmMax, dUdtMin, prsmMin, trrMin, tqMin, risolMin, uisolMin, qrrMax, tjMax, caseType, utmCorrection) ?? false)
                 {
                     //пользователь выполнил сохранение параметра
                     OnPropertyChanged();

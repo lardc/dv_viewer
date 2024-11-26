@@ -1441,6 +1441,8 @@ namespace SCME.dbViewer.ForParameters
                                 break;
                         }
 
+                        valueRetrived = valueRetrived && (value != null);
+
                         if (valueRetrived)
                         {
                             uint columnIndexInExcel = column + columnsCount;
@@ -1523,7 +1525,7 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void SetColumnWidth(SpreadsheetDocument spreadsheetDocument, uint firstUserColumn, uint lastColumn, double? rowHeight)
+        public void SetColumnWidth(SpreadsheetDocument spreadsheetDocument, double systemScale, uint firstUserColumn, uint lastColumn, double? rowHeight)
         {
             if (spreadsheetDocument != null)
             {
@@ -1547,13 +1549,13 @@ namespace SCME.dbViewer.ForParameters
                             //если автоматически вычисленная ширина меньше некоего фиксированного значения - устанавливаем ширину столбцов равной этому фиксированному значению
                             width = (entry.Value < minWidth) ? minWidth : entry.Value;
 
-                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(width), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
+                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(width, systemScale), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
                             break;
 
                         default:
                             //устанавливаем значение ширины столбцов по хранящемуся в maxWidthColumnsInPixel значению
                             //maxWidthColumnsInPixel хранит значения которые перед применением необходимо пересчитать
-                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(entry.Value), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
+                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(entry.Value, systemScale), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
                             break;
                     }
                 }
@@ -1794,26 +1796,13 @@ namespace SCME.dbViewer.ForParameters
                 uint dataCenterStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 5, rowNum, column + 6, string.Concat(this.AssemblyReportRecordCount, " шт."), dataCenterStyleIndex);
 
-                /*
-                value = "шт.";
-                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column + 7, value);
-                cell.StyleIndex = dataCenterStyleIndex;
-                */
-
                 //выводим запущенное по ПЗ количество изделий
                 value = "Общее количество в ПЗ";
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum + 1, column, rowNum + 1, column + 4, value, dataStyleIndex);
 
                 string qtyReleasedByGroupName = this.QtyReleasedByGroupName?.ToString();
                 if (qtyReleasedByGroupName != null)
-                {
                     OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum + 1, column + 5, rowNum + 1, column + 6, string.Concat(qtyReleasedByGroupName, " шт."), dataCenterStyleIndex);
-                    /*
-                    value = "шт.";
-                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column + 7, value);
-                    cell.StyleIndex = dataCenterStyleIndex;
-                    */
-                }
             }
         }
 
@@ -1885,20 +1874,20 @@ namespace SCME.dbViewer.ForParameters
         {
         }
 
-        private string CheckAssemblyProtocolIDAndSapID(DynamicObj row)
+        private string CheckAssemblyProtocolIDAndAssemblyStatusID(DynamicObj row)
         {
-            //проверка значений полей ASSEMBLYPROTOCOLID и SAPID в принятой записи row
-            //принятая row есть результат группировки результатов измерений: row содержит в себе данные нескольких результатов измерений (может быть только один результат, но частный случай) 
+            //проверка значений полей ASSEMBLYPROTOCOLID и ASSEMBLYSTATUSID в принятой записи row
+            //принятая row есть результат группировки результатов измерений: row содержит в себе данные нескольких результатов измерений (может быть только один результат, но это частный случай) 
             //простой пример: сегодня выполнили измерения параметров при температуре RT, по ним сформировали протокол сборки
             //                спустя какое-то время выполнили измерения параметров при температуре TM
             //                при построении отчёта по протоколу сборки система будет использовать автоматически сгруппированный результат RT-TM, хотя пользователь руками не включал в ранее сформированный протокол сборки измерение TM.
-            //при формировании списка значений ASSEMBLYPROTOCOLID значения NULL заменены на 'EMPTY' (см. реализацию функции GroupData в БД)
-            //данная реализация проверяет значения полей SAPID и ASSEMBLYPROTOCOLID принятой записи row и если:
-            //((ASSEMBLYPROTOCOLID='EMPTY') && (SAPID=0))  - устанавливает в базе данных ASSEMBLYPROTOCOLID и SAPID=1;
-            //((ASSEMBLYPROTOCOLID='EMPTY') && (SAPID=1))  - ругается;
-            //((ASSEMBLYPROTOCOLID!='EMPTY') && (SAPID=0)) - ругается;
-            //((ASSEMBLYPROTOCOLID!='EMPTY') && (SAPID=1)) - нормальная ситуация
-            //((ASSEMBLYPROTOCOLID!='EMPTY') и номер не совпадает с номером протокола сборки && (SAPID=1)) - ругается;
+            //при формировании списка значений ASSEMBLYPROTOCOLID значения NULL заменены на 'EMPTY' (см. реализацию функции GroupCacheData в БД)
+            //данная реализация проверяет значения полей ASSEMBLYPROTOCOLID и ASSEMBLYSTATUSID принятой записи row и если:
+            //((ASSEMBLYPROTOCOLID='EMPTY') && (ASSEMBLYSTATUSID=0))  - устанавливает в базе данных ASSEMBLYPROTOCOLID и ASSEMBLYSTATUSID=1;
+            //((ASSEMBLYPROTOCOLID='EMPTY') && (ASSEMBLYSTATUSID=1))  - ругается;
+            //((ASSEMBLYPROTOCOLID!='EMPTY') && (ASSEMBLYSTATUSID=0)) - ругается;
+            //((ASSEMBLYPROTOCOLID!='EMPTY') && (ASSEMBLYSTATUSID=1)) - нормальная ситуация
+            //((ASSEMBLYPROTOCOLID!='EMPTY') и номер не совпадает с номером протокола сборки && (ASSEMBLYSTATUSID=1)) - ругается;
             if (row != null)
             {
                 //считываем множество значений DEV_ID
@@ -1911,14 +1900,14 @@ namespace SCME.dbViewer.ForParameters
                 if (row.GetMember(Common.Constants.AssemblyProtocolID, out object objAssemblyProtocolID))
                     assemblyProtocolIDList = objAssemblyProtocolID.ToString().Split(new string[] { Common.Constants.cString_AggDelimeter.ToString() }, StringSplitOptions.None);
 
-                //считываем множество значений SAPID
-                IEnumerable<string> sapIDList = null;
-                if (row.GetMember("SAPID", out object objSapID))
-                    sapIDList = objSapID.ToString().Split(new string[] { Common.Constants.cString_AggDelimeter.ToString() }, StringSplitOptions.None);
+                //считываем множество значений ASSEMBLYSTATUSID
+                IEnumerable<string> assemblyStatusIDList = null;
+                if (row.GetMember("ASSEMBLYSTATUSID", out object objAssemblyStatusID))
+                    assemblyStatusIDList = objAssemblyStatusID.ToString().Split(new string[] { Common.Constants.cString_AggDelimeter.ToString() }, StringSplitOptions.None);
 
                 //все построенные списки должны иметь одинаковое количество элементов - иначе нельзя будет построить соответствия значений извлечённых из списков
-                if ((devIDList.Count() != assemblyProtocolIDList.Count()) || (devIDList.Count() != sapIDList.Count()))
-                    throw new Exception(string.Format("ReportByDevices. CheckAssemblyProtocolIDAndSapID. Values ​​are not equal. devIDList.Count()={0}, assemblyProtocolIDList.Count()={1}, sapIDList.Count()={2}.", devIDList.Count().ToString(), assemblyProtocolIDList.Count().ToString(), sapIDList.Count().ToString()));
+                if ((devIDList.Count() != assemblyProtocolIDList.Count()) || (devIDList.Count() != assemblyStatusIDList.Count()))
+                    throw new Exception(string.Format("ReportByDevices. CheckAssemblyProtocolIDAndAssemblyStatusID. Values ​​are not equal. devIDList.Count()={0}, assemblyProtocolIDList.Count()={1}, assemblyStatusIDList.Count()={2}.", devIDList.Count().ToString(), assemblyProtocolIDList.Count().ToString(), assemblyStatusIDList.Count().ToString()));
 
                 //значения всех построенных списков упорядочены по DEV_ID и их количество одинаково - можно строить соответствия значений
                 for (int i = 0; i < devIDList.Count(); i++)
@@ -1933,16 +1922,18 @@ namespace SCME.dbViewer.ForParameters
                     int assemblyProtocolID = (sAssemblyProtocolID == "EMPTY") ? -1 : int.Parse(sAssemblyProtocolID);
 
                     //считываем значение статуса в протоколе сборки
-                    //значения Null быть не может, может быть либо "0", либо "1"
-                    //microsoft не сделал возможным bool.Parse("1") и bool.Parse("0") - для них это не логический тип. поэтому:
-                    bool sapID = (sapIDList.ElementAt(i) == "1");
+                    //поле DEVICES.ASSEMBLYSTATUSID в базе данных объявлено NOT NULL - значения Null быть не может
+                    //может быть либо 0, либо 1 (значения 2 - "Test" быть не может - хранимая процедура не может считать записи с таким статусом см. реализацию DataByAssemblyProtocolID)
+                    string sAssemblyStatusID = assemblyStatusIDList.ElementAt(i);
+                    byte assemblyStatusID = byte.Parse(sAssemblyStatusID);
 
-                    if (((assemblyProtocolID == -1) && sapID) || ((assemblyProtocolID != -1) && !sapID))
-                        throw new Exception(string.Format("ReportByDevices. CheckAssemblyProtocolIDAndSapID. assemblyProtocolID={0}, sapID={1}.", assemblyProtocolID, sapID));
+                    if (((assemblyProtocolID == -1) && assemblyStatusID == 1) || ((assemblyProtocolID != -1) && assemblyStatusID == 0))
+                        throw new Exception(string.Format("ReportByDevices. CheckAssemblyProtocolIDAndAssemblyStatusID. assemblyProtocolID={0}, assemblyStatusID={1}.", assemblyProtocolID, assemblyStatusID));
 
                     //при сохранении используем идентификатор протокола сборки по которому строится данный отчёт
-                    if ((assemblyProtocolID == -1) && !sapID)
-                        DbRoutines.UpdateDeviceState(devID, int.Parse(this[0].AssemblyProtocolID), true);
+                    //устанавливаем статус сборки равным 1 ("Сборка")
+                    if ((assemblyProtocolID == -1) && assemblyStatusID == 0)
+                        DbRoutines.UpdateDeviceAssemblyStatusID(devID, int.Parse(this[0].AssemblyProtocolID), 1);
                 }
             }
 
@@ -2073,14 +2064,14 @@ namespace SCME.dbViewer.ForParameters
 
         public string Load(List<DynamicObj> source)
         {
-            //переписывам данные из принятого source в себя
-            //если хотя бы для одного row из принятого source реализация this.ChecksDataForAssemblyReport вернула false - прекращаем исполнение данной реализации и возвращаем строку с ошибкой
+            //переписываем данные из принятого source в себя
+            //если хотя бы для одного row из принятого source реализация this.ChecksDataForAssemblyReport вернула не null - прекращаем исполнение данной реализации и возвращаем строку с ошибкой
             string result = null;
 
             foreach (DynamicObj row in source)
             {
                 //проверяем данные
-                result = this.CheckAssemblyProtocolIDAndSapID(row);
+                result = this.CheckAssemblyProtocolIDAndAssemblyStatusID(row);
 
                 //если процедура проверки обнаружила не соответствия - прекращаем заливку данных и возвращаем описание ошибки
                 if (result != null)
@@ -2135,7 +2126,7 @@ namespace SCME.dbViewer.ForParameters
             this[0].QtyOKFaultToExcel(spreadsheetDocument, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
         }
 
-        public void SetColumnWidth(SpreadsheetDocument spreadsheetDocument)
+        public void SetColumnWidth(SpreadsheetDocument spreadsheetDocument, double systemScale)
         {
             if (spreadsheetDocument != null)
             {
@@ -2151,7 +2142,7 @@ namespace SCME.dbViewer.ForParameters
                 {
                     //устанавливаем значение ширины столбцов по хранящемуся в maxWidthColumnsInPixel значению
                     //maxWidthColumnsInPixel хранит значения которые перед применением необходимо пересчитать
-                    columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(entry.Value), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
+                    columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(entry.Value, systemScale), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
                 }
             }
         }
@@ -2203,7 +2194,7 @@ namespace SCME.dbViewer.ForParameters
             this[0].ListOfCalculatorsMinMaxToExcel(spreadsheetDocument, ref rowNum, listOfCalculatorsMinMax);
         }
 
-        public void ReportToExcel()
+        public void ReportToExcel(double systemScale)
         {
             //удаляем все старые отчёты, чтобы не захламлять директорию
             Routines.ClearOldReports(Routines.EnvironmentVariableTempValue(), Routines.PartOfCasualReportFileName);
@@ -2330,7 +2321,7 @@ namespace SCME.dbViewer.ForParameters
                     this.QtyOKFaultToExcel(spreadsheetDocument, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
                 }
 
-                this.SetColumnWidth(spreadsheetDocument);
+                this.SetColumnWidth(spreadsheetDocument, systemScale);
 
                 //настраиваем вид печатного отчёта
                 this.PageSetUp(spreadsheetDocument);
@@ -2380,7 +2371,7 @@ namespace SCME.dbViewer.ForParameters
             //считываем описание норм из справочника с нормами на изделия DeviceReferences
             if (norms != null)
             {
-                if (DbRoutines.DeviceReferences(itav, deviceTypeID, constructive, modification, out int? igtMax, out decimal? ugtMax, out decimal? tgtMax, out int? ubrMin, out int? udsmMin, out int? ursmMin, out decimal? utmMax, out int? idrmMax, out int? irrmMax, out int? dUdtMin, out int? prsmMin, out decimal? trrMin, out decimal? tqMin, out int? risolMin, out int? uisolMin, out int? qrrMax, out int? tjMax, out string caseType, out decimal? utmCorrection) != -1)
+                if (DbRoutines.DeviceReferences(itav, deviceTypeID, constructive, modification, out int? igtMax, out decimal? ugtMax, out decimal? tgtMax, out int? ubrMin, out int? udsmMin, out int? ursmMin, out decimal? utmMax, out decimal? ufmMax, out int? idrmMax, out int? irrmMax, out int? dUdtMin, out int? prsmMin, out decimal? trrMin, out decimal? tqMin, out int? risolMin, out int? uisolMin, out int? qrrMax, out int? tjMax, out string caseType, out decimal? utmCorrection) != -1)
                 {
                     norms.Clear();
                     ParamReference paramReference;
@@ -2424,6 +2415,12 @@ namespace SCME.dbViewer.ForParameters
                     if (utmMax != null)
                     {
                         paramReference = new ParamReference { Name = "UTM", MinValue = null, MaxValue = ((decimal)utmMax).ToString("0.00") };
+                        norms.Add(paramReference);
+                    }
+
+                    if (ufmMax != null)
+                    {
+                        paramReference = new ParamReference { Name = "UFM", MinValue = null, MaxValue = ((decimal)ufmMax).ToString("0.00") };
                         norms.Add(paramReference);
                     }
 
@@ -2663,7 +2660,7 @@ namespace SCME.dbViewer.ForParameters
             return result;
         }
 
-        public void AssemblyReportToExcel(int itav, int deviceTypeID, string constructive, string modification)
+        public void AssemblyReportToExcel(double systemScale, int itav, int deviceTypeID, string constructive, string modification)
         {
             //построение отчёта протокола сборки
             //входные параметры:
@@ -2739,7 +2736,7 @@ namespace SCME.dbViewer.ForParameters
 
                 //ширина, выставленная автоматически слишком мала для заполнения руками - выставляем свою ширину
                 //пользователи данного отчёта пишут руками некоторые данные в распечатанном отчёте и высота ячеек, установленных автоматически по самой высокой ячейке в строке им мала - поэтому
-                zeroRecord.SetColumnWidth(spreadsheetDocument, (uint)firstUserColumn, (uint)lastUserColumn, 20);
+                zeroRecord.SetColumnWidth(spreadsheetDocument, systemScale, (uint)firstUserColumn, (uint)lastUserColumn, 20);
 
                 //выводим данные из нулевой строки под выведенной таблицей
                 rowNum += 2;

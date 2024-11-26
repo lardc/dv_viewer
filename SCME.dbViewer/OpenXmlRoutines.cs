@@ -216,10 +216,10 @@ namespace OpenXml
             return uint.Parse(match.Value);
         }
 
-        public static double WidthToOpenXml(double width)
+        public static double WidthToOpenXml(double width, double systemScale)
         {
-            //пересчитываем пиксели в ширину Excel: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/7902415
-            return (width - 12 + 5) / 7d + 1;
+            //пересчитываем пиксели в ширину Excel с учётом текущего масштабирования в операционной системе: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/7902415
+            return ((width - 12 + 5) / 7d + 1) / systemScale;
         }
 
         private static double HeightToOpenXml(double height)

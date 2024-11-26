@@ -63,9 +63,15 @@ ALTER TABLE DEVICES
 ADD CONSTRAINT FK_AssemblyProtocolID_For_DEVICES FOREIGN KEY (AssemblyProtocolID)
 REFERENCES AssemblyProtocols (AssemblyProtocolID)
 
+/*
 ALTER TABLE DEVICES
 ADD CONSTRAINT FK_SapID_For_DEVICES FOREIGN KEY (SapID)
 REFERENCES StatusByAssemblyProtocol (SapID)
+*/
+
+ALTER TABLE DEVICES
+ADD CONSTRAINT FK_AssemblyStatusID_For_DEVICES FOREIGN KEY (AssemblyStatusID)
+REFERENCES AssemblyStatuses (AssemblyStatusID)
 
 ALTER TABLE DEVICES
 ADD CONSTRAINT FK_HumanReasonID_For_DEVICES FOREIGN KEY (HumanReasonID)
@@ -94,9 +100,18 @@ ALTER TABLE AssemblyProtocols
 ADD CONSTRAINT FK_DeviceTypeID_For_AssemblyProtocols FOREIGN KEY (DeviceTypeID)
 REFERENCES DeviceTypes (DeviceTypeID)
 
+---------------------------------------------------------------------------------------------------------------
 ALTER TABLE DeviceStatusByAssemblyProtocol
 ADD CONSTRAINT UNIQUE_Descr_For_DeviceStatusByAssemblyProtocol UNIQUE(Descr)
 
+ALTER TABLE DeviceStatusByAssemblyProtocol
+ADD CONSTRAINT UNIQUE_Descr_For_DeviceStatusByAssemblyProtocol UNIQUE(Descr)
+
+---------------------------------------------------------------------------------------------------------------
+ALTER TABLE AssemblyStatuses
+ADD CONSTRAINT UNIQUE_Descr_For_AssemblyStatuses UNIQUE(Descr)
+
+---------------------------------------------------------------------------------------------------------------
 CREATE INDEX IX_DEV_PARAM_PARAM_ID_TEST_TYPE_ID
 ON DEV_PARAM(PARAM_ID, TEST_TYPE_ID)
 

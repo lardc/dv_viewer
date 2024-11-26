@@ -97,6 +97,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string AssemblyStatusDescr {
+            get {
+                return ResourceManager.GetString("AssemblyStatusDescr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Authenticate.
         /// </summary>
         public static string Authenticate {
@@ -671,6 +680,15 @@ namespace SCME.dbViewer.Properties {
         public static string EditValueOfManuallyEnteredParameter {
             get {
                 return ResourceManager.GetString("EditValueOfManuallyEnteredParameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The system prevented the creation of a column for an empty list of records..
+        /// </summary>
+        public static string ErrorCreateColumnByListOfRecordsIsEmpty {
+            get {
+                return ResourceManager.GetString("ErrorCreateColumnByListOfRecordsIsEmpty", resourceCulture);
             }
         }
         
@@ -1422,15 +1440,6 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to State.
-        /// </summary>
-        public static string SapDescr {
-            get {
-                return ResourceManager.GetString("SapDescr", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
         public static string Save {
@@ -1787,6 +1796,15 @@ namespace SCME.dbViewer.Properties {
         public static string UdsmMin {
             get {
                 return ResourceManager.GetString("UdsmMin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UfmMax.
+        /// </summary>
+        public static string UfmMax {
+            get {
+                return ResourceManager.GetString("UfmMax", resourceCulture);
             }
         }
         

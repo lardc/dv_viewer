@@ -458,9 +458,6 @@ device</value>
   <data name="ProfileBody" xml:space="preserve">
     <value>Body of profile</value>
   </data>
-  <data name="SapDescr" xml:space="preserve">
-    <value>State</value>
-  </data>
   <data name="StateAssembly" xml:space="preserve">
     <value>Assembly</value>
   </data>
@@ -778,5 +775,14 @@ device</value>
   </data>
   <data name="UrsmMin" xml:space="preserve">
     <value>UrsmMin</value>
+  </data>
+  <data name="ErrorCreateColumnByListOfRecordsIsEmpty" xml:space="preserve">
+    <value>The system prevented the creation of a column for an empty list of records.</value>
+  </data>
+  <data name="AssemblyStatusDescr" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="UfmMax" xml:space="preserve">
+    <value>UfmMax</value>
   </data>
 </root>

@@ -461,9 +461,6 @@
   <data name="ProfileBody" xml:space="preserve">
     <value>Тело профиля</value>
   </data>
-  <data name="SapDescr" xml:space="preserve">
-    <value>Состояние</value>
-  </data>
   <data name="StateAssembly" xml:space="preserve">
     <value>Сборка</value>
   </data>
@@ -775,5 +772,14 @@
   </data>
   <data name="UrsmMin" xml:space="preserve">
     <value>UrsmMin</value>
+  </data>
+  <data name="ErrorCreateColumnByListOfRecordsIsEmpty" xml:space="preserve">
+    <value>Система запретила создание столбца для пустого списка записей.</value>
+  </data>
+  <data name="AssemblyStatusDescr" xml:space="preserve">
+    <value>Состояние</value>
+  </data>
+  <data name="UfmMax" xml:space="preserve">
+    <value>UfmMax</value>
   </data>
 </root>

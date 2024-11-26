@@ -7,7 +7,7 @@ namespace SCME.dbViewer
     public static class AssemblyProtocolReport
     {
         public delegate string SaveAssemblyProtocol();
-        private static string BuildAssemblyReportInExcel(SaveAssemblyProtocol saveAssemblyProtocolHandler, int itav, int deviceTypeID, string constructive, string sDeviceClass, string modification, ReportData reportData)
+        private static string BuildAssemblyReportInExcel(SaveAssemblyProtocol saveAssemblyProtocolHandler, double systemScale, int itav, int deviceTypeID, string constructive, string sDeviceClass, string modification, ReportData reportData)
         {
             //формируем в Excel протокол сборки
             //возвращает:
@@ -70,15 +70,14 @@ namespace SCME.dbViewer
             result = saveAssemblyProtocolHandler?.Invoke();
 
             if (result == null)
-                reportData.AssemblyReportToExcel(itav, deviceTypeID, constructive, modification);
+                reportData.AssemblyReportToExcel(systemScale, itav, deviceTypeID, constructive, modification);
 
             return result;
         }
 
-        public static void Build(int assemblyProtocolID, SaveAssemblyProtocol saveAssemblyProtocolHandler, int assemblyReportRecordCount, string assemblyJob, string deviceDescr, string deviceTypeRU, string omnity, string tq, string trr, string qrr, string dUdt, string tgt, int itav, int deviceTypeID, string constructive, string modification, string deviceClass)
+        public static void Build(int assemblyProtocolID, SaveAssemblyProtocol saveAssemblyProtocolHandler, double systemScale, int assemblyReportRecordCount, string assemblyJob, string deviceDescr, string deviceTypeRU, string omnity, string tq, string trr, string qrr, string dUdt, string tgt, int itav, int deviceTypeID, string constructive, string modification, string deviceClass)
         {
             //формирование отчёта по протоколу сборки
-            //в нулевом элементе списка будем хранить значения ревизитов установленных пользователем для данного протокола сборки
             //в нулевом элементе списка будем хранить значения ревизитов установленных пользователем для данного протокола сборки
             DynamicObj row = Routines.UserPropertiesOfAssemblyProtocol(assemblyProtocolID, assemblyReportRecordCount, assemblyJob, deviceDescr, deviceTypeRU, omnity, tq, trr, qrr, dUdt, tgt);
 
@@ -114,7 +113,7 @@ namespace SCME.dbViewer
                     return;
                 }
 
-                errorDescription = BuildAssemblyReportInExcel(saveAssemblyProtocolHandler, itav, deviceTypeID, constructive, deviceClass, modification, reportData);
+                errorDescription = BuildAssemblyReportInExcel(saveAssemblyProtocolHandler, systemScale, itav, deviceTypeID, constructive, deviceClass, modification, reportData);
                 if (errorDescription != null)
                 {
                     MessageBox.Show(errorDescription, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);

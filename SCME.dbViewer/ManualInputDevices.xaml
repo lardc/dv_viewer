@@ -56,7 +56,7 @@
 
             <TextBox DockPanel.Dock="Left" Text="{x:Static res:Resources.Profile}" IsReadOnly="True" HorizontalAlignment="Right" FontSize="16" BorderThickness="0" Margin="30,0,0,0"/>
             <TextBlock DockPanel.Dock="Left" Text=": " HorizontalAlignment="Right" FontSize="16"/>
-            <ComboBox x:Name="CmbProfileName" ItemsSource="{Binding Source={StaticResource ListOfProfiles}}" DockPanel.Dock="Left" MinWidth="120" HorizontalAlignment="Left" FontWeight="Bold" FontSize="16" Foreground="{Binding Path=Text, ElementName=CmbProfileName, Converter={StaticResource textToForegroundConverter}}" IsEditable="False" MaxDropDownHeight="Auto" SelectionChanged="CmbProfileName_SelectionChanged">
+            <ComboBox x:Name="CmbProfileName" ItemsSource="{Binding Source={StaticResource ListOfProfiles}}" DockPanel.Dock="Left" MinWidth="120" HorizontalAlignment="Left" FontWeight="Bold" FontSize="16" Foreground="{Binding Path=Text, ElementName=CmbProfileName, Converter={StaticResource textToForegroundConverter}}" IsEditable="False" MaxDropDownHeight="Auto">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">

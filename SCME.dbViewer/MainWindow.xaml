@@ -542,7 +542,7 @@
                 <!-- <DataGridTextColumn Header="{x:Static res:Resources.ProfileBody}" Binding="{Binding Path=PROFILEBODY, UpdateSourceTrigger=PropertyChanged}"/> -->
                 <DataGridTextColumn Header="{x:Static res:Resources.Status}" Binding="{Binding {x:Static common:Constants.Status}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
                 <DataGridCheckBoxColumn CellStyle="{StaticResource DataGridCellCheckBoxStyle}" ElementStyle="{StaticResource CheckBoxStyle}" Header="{x:Static res:Resources.CheckedDevice}" Binding="{Binding {x:Static common:Constants.Choice}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.SapDescr}" Binding="{Binding {x:Static common:Constants.SapDescr}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.AssemblyStatusDescr}" Binding="{Binding {x:Static common:Constants.AssemblyStatusDescr}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
                 <DataGridTextColumn Header="{x:Static res:Resources.DeviceClass}" Binding="{Binding {x:Static common:Constants.DeviceClass}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
 
                 <!-- <DataGridTextColumn Header="{x:Static res:Resources.DeviceComments}" Binding="{Binding Path=DEVICECOMMENTS, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DeviceCommentsDataGridColumnProxy}, Path=Tag}"/> -->

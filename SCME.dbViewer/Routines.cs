@@ -83,6 +83,20 @@ namespace SCME.dbViewer
             return source?.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        public static double SystemScale(System.Windows.Media.Visual visual)
+        {
+            //считывает из операционной системы значение масштаба (пример: 1, 1.25, 1.5)
+            PresentationSource source = PresentationSource.FromVisual(visual);
+
+            if (source != null)
+            {
+                return source.CompositionTarget.TransformToDevice.M11;
+                //dpiY = 96.0 * source.CompositionTarget.TransformToDevice.M22;
+            }
+
+            return 1;
+        }
+
         public static DynamicObj GetPlaceHolder(dynamic item, int page, int offset)
         {
             //принятый item предлагается заполнить данными
@@ -1374,11 +1388,21 @@ namespace SCME.dbViewer
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToBoolean(reader[index]));
 
+                /*
                 name = "SAPID";
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index])); //RemoveDuplicates(Convert.ToString(reader[index]))
 
                 name = Common.Constants.SapDescr;
+                index = reader.GetOrdinal(name);
+                SaveValue(isReload, item, name, Convert.ToString(reader[index]));
+                */
+
+                name = Common.Constants.AssemblyStatusID;
+                index = reader.GetOrdinal(name);
+                SaveValue(isReload, item, name, Convert.ToString(reader[index]));
+
+                name = Common.Constants.AssemblyStatusDescr;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
@@ -1551,8 +1575,10 @@ namespace SCME.dbViewer
                             string columnNameInDataGrid = string.Empty;
                             string columnNameInDataSource = string.Empty;
 
+                            /*
                             Type factColumnDataType = null;
                             Type newColumnDataType = null;
+                            */
 
                             double? dNrmMin = null;
                             double? dNrmMax = null;
@@ -1578,8 +1604,8 @@ namespace SCME.dbViewer
                                                 //описания условий хранятся как строки, в них может быть всё что угодно                                    
                                                 value = attributes["Value"].Value;
 
-                                                newColumnDataType = typeof(string);
-                                                factColumnDataType = TypeOfValue(value, out value);
+                                                //newColumnDataType = typeof(string);
+                                                TypeOfValue(value, out value); //factColumnDataType = 
 
                                                 //строим имя условия для отображения в DataGrid
                                                 test = TestNameInDataGridColumn(test);
@@ -1603,18 +1629,24 @@ namespace SCME.dbViewer
 
                                             if (need)
                                             {
-                                                value = attributes["Value"].Value;
+                                                XmlAttribute attributeValue = attributes["Value"];
+                                                if (attributeValue != null)
+                                                {
+                                                    value = attributeValue.Value;
 
-                                                //значения измеренных параметров - всегда должны преобразовываться к числу с плавающей запятой. если это не так - ругаемся
-                                                if (!ValueAsDouble(value, out double dValue))
-                                                    throw new Exception(string.Format("При чтении значения измеренного параметра '{0}' из XML описания оказалось, что его значение '{1}' не преобразуется к типу Double.", name, value));
+                                                    //значения измеренных параметров - всегда должны преобразовываться к числу с плавающей запятой. если это не так - ругаемся
+                                                    if (!ValueAsDouble(value, out double dValue))
+                                                        throw new Exception(string.Format("При чтении значения измеренного параметра '{0}' из XML описания оказалось, что его значение '{1}' не преобразуется к типу Double.", name, value));
 
-                                                //округляем до второго знака значения параметров (в том числе и созданных вручную)
-                                                //при этом если значение параметра записано целым числом - оно таковым и останется
-                                                value = Math.Round(dValue, 2).ToString();
+                                                    //округляем до второго знака значения параметров (в том числе и созданных вручную)
+                                                    //при этом если значение параметра записано целым числом - оно таковым и останется
+                                                    value = Math.Round(dValue, 2).ToString();
+                                                }
 
+                                                /*
                                                 newColumnDataType = typeof(double);
                                                 factColumnDataType = newColumnDataType;
+                                                */
 
                                                 //атрибут "TemperatureCondition" может быть только у параметров, которые созданы пользователем
                                                 string tC = (test == DbRoutines.cManually) ? attributes["TemperatureCondition"].Value : tc.ToString();
@@ -1631,23 +1663,23 @@ namespace SCME.dbViewer
                                                 unitMeasure = (attributes["Um"] == null) ? string.Empty : attributes["Um"].Value;
 
                                                 //считываем значения норм
-                                                XmlAttribute attribute = attributes["NrmMin"];
-                                                if (attribute != null)
+                                                XmlAttribute attributeNrm = attributes["NrmMin"];
+                                                if (attributeNrm != null)
                                                 {
-                                                    string nrmMin = attribute.Value;
+                                                    string nrmMin = attributeNrm.Value;
                                                     //значения норм - всегда числа с плавающей запятой. если это не так - ругаемся
-                                                    if (!ValueAsDouble(nrmMin, out dValue))
+                                                    if (!ValueAsDouble(nrmMin, out double dValue))
                                                         throw new Exception(string.Format("При чтении значения нормы (min) измеренного параметра '{0}' из XML описания оказалось, что оно '{1}' не преобразуется к типу Double.", name, nrmMin));
 
                                                     dNrmMin = Math.Round(dValue, 2);
                                                 }
 
-                                                attribute = attributes["NrmMax"];
-                                                if (attribute != null)
+                                                attributeNrm = attributes["NrmMax"];
+                                                if (attributeNrm != null)
                                                 {
-                                                    string nrmMax = attribute.Value;
+                                                    string nrmMax = attributeNrm.Value;
                                                     //значения норм - всегда числа с плавающей запятой. если это не так - ругаемся
-                                                    if (!ValueAsDouble(nrmMax, out dValue))
+                                                    if (!ValueAsDouble(nrmMax, out double dValue))
                                                         throw new Exception(string.Format("При чтении значения нормы (max) измеренного параметра '{0}' из XML описания оказалось, что оно '{1}' не преобразуется к типу Double.", name, nrmMax));
 
                                                     dNrmMax = Math.Round(dValue, 2);
@@ -1757,18 +1789,6 @@ namespace SCME.dbViewer
                 SCME.Types.DbRoutines.ReadDataByAssemblyProtocolID(assemblyProtocolID, Common.Constants.cString_AggDelimeter, FillData, data);
         }
 
-        /*
-        private static void SetToQueueCreateColumnInDataGrid(DataGridSqlResultBigData dataGrid, ConcurrentQueue<Action> queueManager, int index, string header, string bindPath)
-        {
-            queueManager.Enqueue(
-                                  delegate
-                                  {
-                                      CreateColumnInDataGrid(dataGrid, index, header, bindPath);
-                                  }
-                                );
-        }
-        */
-
         public static void SetToQueueCreateColumnInDataGrid(DataGridSqlResultBigData dataGrid, ComboBox cmbDeviceType, ConcurrentQueue<Action> queueManager, object columnsLocker, bool assemblyProtocolMode, string header, string bindPath)
         {
             queueManager.Enqueue(
@@ -1786,7 +1806,7 @@ namespace SCME.dbViewer
                                                   switch (assemblyProtocolMode)
                                                   {
                                                       case true:
-                                                          //если имеем дело с режимом просмотра протокола сборки, то список отображаемых столбцов зависит от типа выбраного пользователем типа изделия
+                                                          //если имеем дело с режимом просмотра протокола сборки, то список отображаемых столбцов зависит от выбраного пользователем типа изделия
                                                           object selectedItem = cmbDeviceType.SelectedItem;
                                                           string deviceTypeRu = (selectedItem == null) ? null : ((string[])selectedItem)[1];
                                                           template = AssemblyProtocolParametersByDeviceTypeRu(deviceTypeRu);
@@ -1989,7 +2009,7 @@ namespace SCME.dbViewer
 
         private static string ValueByFieldName(DynamicObj item, string fieldName)
         {
-            return item.GetMember(fieldName, out object value) ? value.ToString() : null;
+            return item.GetMember(fieldName, out object value) ? value?.ToString() : null;
         }
 
         private static string OmnityFromItem(string item)
@@ -2092,19 +2112,22 @@ namespace SCME.dbViewer
                     {
                         string sValue = ValueByFieldName(item, name);
 
-                        //выбрасываем из sValue всё, что не является числом
-                        sValue = RemoveNonNumericChars(sValue);
-
-                        if (double.TryParse(sValue, out double dValue))
+                        if (!string.IsNullOrEmpty(sValue))
                         {
-                            if (maxValue == null)
+                            //выбрасываем из sValue всё, что не является числом
+                            sValue = RemoveNonNumericChars(sValue);
+
+                            if (double.TryParse(sValue, out double dValue))
                             {
-                                maxValue = dValue;
-                            }
-                            else
-                            {
-                                if (dValue > (double)maxValue)
+                                if (maxValue == null)
+                                {
                                     maxValue = dValue;
+                                }
+                                else
+                                {
+                                    if (dValue > (double)maxValue)
+                                        maxValue = dValue;
+                                }
                             }
                         }
                     }
@@ -2113,7 +2136,7 @@ namespace SCME.dbViewer
                 return maxValue;
             }
 
-            return data.Max(i => MaxValueByItem(i)).ToString();
+            return data.Max(i => MaxValueByItem(i))?.ToString();
         }
 
         public static int? CalcQrr(string deviceTypeRu, string constructive, int? itav)

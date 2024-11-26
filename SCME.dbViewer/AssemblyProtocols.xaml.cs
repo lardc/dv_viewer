@@ -522,7 +522,8 @@ namespace SCME.dbViewer
                     string sdUdt = dUdt?.ToString();
                     string sTgt = tgt?.ToString();
 
-                    AssemblyProtocolReport.Build(assemblyProtocolID, null, -1, assemblyJob, deviceDescr, deviceTypeRU, sOmnity, tqGroup?.TrueValue, sTrr, sQrr, sdUdt, sTgt, itav, iDeviceTypeID, constructive, modification, sDeviceClass);
+                    double systemScale = Routines.SystemScale(this);
+                    AssemblyProtocolReport.Build(assemblyProtocolID, null, systemScale, - 1, assemblyJob, deviceDescr, deviceTypeRU, sOmnity, tqGroup?.TrueValue, sTrr, sQrr, sdUdt, sTgt, itav, iDeviceTypeID, constructive, modification, sDeviceClass);
                 }
                 finally
                 {

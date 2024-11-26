@@ -34,7 +34,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -97,7 +97,6 @@
       <DependentUpon>BitCalculator.xaml</DependentUpon>
     </Compile>
     <Compile Include="Collection.cs" />
-    <Compile Include="CommonResources.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Converters.cs" />
     <Compile Include="CustomControl\DatePickerCustom.xaml.cs">
@@ -130,9 +129,6 @@
     </Compile>
     <Compile Include="ManualInputParamEditor.xaml.cs">
       <DependentUpon>ManualInputParamEditor.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ManualAddDevices.xaml.cs">
-      <DependentUpon>ManualAddDevices.xaml</DependentUpon>
     </Compile>
     <Compile Include="OpenXmlRoutines.cs" />
     <Compile Include="Properties\Resources.ru-RU.Designer.cs">
@@ -228,10 +224,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="ManualInputParamEditor.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="ManualAddDevices.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

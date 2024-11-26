@@ -727,7 +727,7 @@ namespace SCME.dbViewer
             }
         }
 
-        private void BuildReportInExcel(ReportData reportData)
+        private void BuildReportInExcel(ReportData reportData, double systemScale)
         {
             //построение отчёта в Excel
             //получаем содержимое кеша
@@ -740,7 +740,7 @@ namespace SCME.dbViewer
                 ReportData rep = new ReportData(sortedReportByDevices);
 
                 //формируем отчёт            
-                rep.ReportToExcel();
+                rep.ReportToExcel(systemScale);
             }
         }
 
@@ -1085,7 +1085,8 @@ namespace SCME.dbViewer
             }
 
             //если в меню работы с пользовательскими параметрами права позволяют работать с ними - показываем меню верхнего уровня, иначе прячем
-            mnuParameters.Visibility = this.IsMnuParametersVisible() ? Visibility.Visible : Visibility.Collapsed;
+            //создание измерений отключил 07.02.2024 чтобы пользователи работали только через форму ManualInputDevices, т.к. отключенное средсво всегда создаёт измерения с кодом MME_CODE='Manually' что плохо (они не имеют вычисленного класса и поиск по таким ручным параметрам не работает)
+            //mnuParameters.Visibility = this.IsMnuParametersVisible() ? Visibility.Visible : Visibility.Collapsed; 
             mnuDevices.Visibility = this.IsMnuDevicesVisible() ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -1532,7 +1533,7 @@ namespace SCME.dbViewer
                 int apID = this.AssemblyProtocolIDFromFilter();
                 int? assemblyProtocolID = (apID == -1) ? null : (int?)apID;
 
-                ManualInputDevices manualAddDevices = new ManualInputDevices()
+                ManualInputDevices manualAddDevices = new ManualInputDevices(this.ProcessWaitVisualizerHWnd)
                 {
                     Owner = this
                 };
@@ -2030,7 +2031,7 @@ namespace SCME.dbViewer
 
         private void ContextMenuSendSelectedToAssemblyProtocol_Click(object sender, RoutedEventArgs e)
         {
-            //отправка выбранных груп измерений в уже существующий протокол сборки
+            //отправка выбранных групп измерений в уже существующий протокол сборки
             if (Common.Routines.IsUserCanWorkWithAssemblyProtocol(this.PermissionsLo))
             {
                 int? intValue = this.ReadIntValueByNameFromContextMenu(sender, "tbAssemblyProtocolDescr", out string stringValue);
@@ -2054,6 +2055,9 @@ namespace SCME.dbViewer
                         //отправляем выбранные пользователем группы измерений в протокол сборки
                         if (DbRoutines.SendToAssemblyProtocol(this.AssemblyProtocolMode, assemblyProtocolID))
                         {
+                            //удаляем все протоколы сборки, которые не содержат в себе ни одной строки
+                            DbRoutines.DeleteEmptyAssemblyProtocols();
+
                             if (this.AssemblyProtocolMode)
                                 this.RefreshShowingData();
 
@@ -2759,10 +2763,10 @@ namespace SCME.dbViewer
                                 break;
 
                             case Common.Constants.Choice:
-                            case Common.Constants.SapID:
                                 result = typeof(bool).FullName;
                                 break;
 
+                            case Common.Constants.AssemblyStatusID:
                             case Common.Constants.AssemblyProtocolDescr:
                             case Common.Constants.AverageCurrent:
                             case Common.Constants.DeviceClass:
@@ -3306,6 +3310,10 @@ namespace SCME.dbViewer
 
                     try
                     {
+                        //не все пользователи хорошо видят и некоторые устанавливают в операционной системе увеличенный масштаб
+                        //узнаём его для передачи в реализацию построения отчёта
+                        double systemScale = Routines.SystemScale(this);
+
                         switch (this.AssemblyProtocolMode)
                         {
                             //требуется сгенерировать в Excel отчёт по протоколу сборки
@@ -3383,12 +3391,12 @@ namespace SCME.dbViewer
                                 //идентификатор отображаемого протокола сборки нужен для фильтрации исходных данных
                                 //в этом случае формирования отчёта он нам не нужен - в кеше и так могут быть только такие записи, которые уже отфильтрованы по номеру протокола сборки
                                 //параметр assemblyProtocolID в реализации AssemblyProtocolReport.Build нужен только для случая вызова из списка отображаемых протоколов сборки - там нет фильтрации по протоколу сборки
-                                AssemblyProtocolReport.Build(-1, this.SaveAssemblyProtocol, cacheSize, assemblyJob, this.lbDevice.Content.ToString(), deviceTypeRU, this.tbOmnity.Text, tq, trr, qrr, dUdt, tgt, itav, deviceTypeID, constructive, modification, this.tbDeviceClass.Text);
+                                AssemblyProtocolReport.Build(-1, this.SaveAssemblyProtocol, systemScale, cacheSize, assemblyJob, this.lbDevice.Content.ToString(), deviceTypeRU, this.tbOmnity.Text, tq, trr, qrr, dUdt, tgt, itav, deviceTypeID, constructive, modification, this.tbDeviceClass.Text);
                                 break;
 
                             default:
                                 //требуется сгенерировать в Excel отчёт по отображаемым данным
-                                this.BuildReportInExcel(this.GetReportData(cacheSize));
+                                this.BuildReportInExcel(this.GetReportData(cacheSize), systemScale);
                                 break;
                         }
                     }

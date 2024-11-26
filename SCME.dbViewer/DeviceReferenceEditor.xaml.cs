@@ -19,7 +19,7 @@ namespace SCME.dbViewer
             this.Owner = Application.Current.MainWindow;
         }
 
-        public bool? ShowModal(int? deviceReferenceID, out int? createdDeviceReferenceID, int itav, int deviceTypeID, string constructive, string modification, int? igtMax, decimal? ugtMax, decimal? tgtMax, int? ubrMin, int? udsmMin, int? ursmMin, decimal? utmMax, int? idrmMax, int? irrmMax, int? dUdtMin, int? prsmMin, decimal? trrMin, decimal? tqMin, int? risolMin, int? uisolMin, int? qrrMax, int? tjMax, string caseType, decimal? utmCorrection)
+        public bool? ShowModal(int? deviceReferenceID, out int? createdDeviceReferenceID, int itav, int deviceTypeID, string constructive, string modification, int? igtMax, decimal? ugtMax, decimal? tgtMax, int? ubrMin, int? udsmMin, int? ursmMin, decimal? utmMax, decimal? ufmMax, int? idrmMax, int? irrmMax, int? dUdtMin, int? prsmMin, decimal? trrMin, decimal? tqMin, int? risolMin, int? uisolMin, int? qrrMax, int? tjMax, string caseType, decimal? utmCorrection)
         {
             //данная реализация принимает на вход идентификатор записи deviceReferenceID и её реквизиты, отображает их значения в данной форме
             //в out параметре createdDeviceReferenceID возвращается идентификатор созданной записи. если запись редактировалась или удалялась - возвращает null
@@ -48,6 +48,7 @@ namespace SCME.dbViewer
             this.TbUdsmMin.Text = udsmMin.ToString();
             this.TbUrsmMin.Text = ursmMin.ToString();
             this.TbUtmMax.Text = (utmMax == null) ? null : string.Format("{0:N2}", utmMax);
+            this.TbUfmMax.Text = (ufmMax == null) ? null : string.Format("{0:N2}", ufmMax);
             this.TbIdrmMax.Text = idrmMax?.ToString();
             this.TbIrrmMax.Text = irrmMax.ToString();
             this.TbdUdtMin.Text = dUdtMin.ToString();
@@ -90,6 +91,7 @@ namespace SCME.dbViewer
                     int? editedUdsmMin = string.IsNullOrEmpty(this.TbUdsmMin.Text.Trim()) ? null : (int?)int.Parse(this.TbUdsmMin.Text.Trim());
                     int? editedUrsmMin = string.IsNullOrEmpty(this.TbUrsmMin.Text.Trim()) ? null : (int?)int.Parse(this.TbUrsmMin.Text.Trim());
                     decimal? editedUtmMax = string.IsNullOrEmpty(this.TbUtmMax.Text.Trim()) ? null : (decimal?)decimal.Parse(this.TbUtmMax.Text.Trim());
+                    decimal? editedUfmMax = string.IsNullOrEmpty(this.TbUfmMax.Text.Trim()) ? null : (decimal?)decimal.Parse(this.TbUfmMax.Text.Trim());
                     int? editedIdrmMax = string.IsNullOrEmpty(this.TbIdrmMax.Text.Trim()) ? null : (int?)int.Parse(this.TbIdrmMax.Text.Trim());
                     int? editedIrrmMax = string.IsNullOrEmpty(this.TbIrrmMax.Text.Trim()) ? null : (int?)int.Parse(this.TbIrrmMax.Text.Trim());
                     int? editeddUdtMin = string.IsNullOrEmpty(this.TbdUdtMin.Text.Trim()) ? null : (int?)int.Parse(this.TbdUdtMin.Text.Trim());
@@ -104,7 +106,7 @@ namespace SCME.dbViewer
                     decimal? editedUtmCorrection = string.IsNullOrEmpty(this.TbUtmCorrection.Text.Trim()) ? null : (decimal?)decimal.Parse(this.TbUtmCorrection.Text.Trim());
 
                     //раскоммент
-                    createdDeviceReferenceID = DbRoutines.SaveToDeviceReferences(deviceReferenceID, editedItav, editedDeviceTypeID, editedConstructive, editedModification, editedIgtMax, editedUgtMax, editedTgtMax, editedUbrMin, editedUdsmMin, editedUrsmMin, editedUtmMax, editedIdrmMax, editedIrrmMax, editeddUdtMin, editedPrsmMin, editedTrrMin, editedTqMin, editedRisolMin, editedUisolMin, editedQrrMax, editedTjMax, editedCaseType, editedUtmCorrection, tabNum);
+                    createdDeviceReferenceID = DbRoutines.SaveToDeviceReferences(deviceReferenceID, editedItav, editedDeviceTypeID, editedConstructive, editedModification, editedIgtMax, editedUgtMax, editedTgtMax, editedUbrMin, editedUdsmMin, editedUrsmMin, editedUtmMax, editedUfmMax, editedIdrmMax, editedIrrmMax, editeddUdtMin, editedPrsmMin, editedTrrMin, editedTqMin, editedRisolMin, editedUisolMin, editedQrrMax, editedTjMax, editedCaseType, editedUtmCorrection, tabNum);
                 }
             }
 
@@ -178,6 +180,12 @@ namespace SCME.dbViewer
             if (!string.IsNullOrEmpty(TbUtmMax.Text) && !decimal.TryParse(TbUtmMax.Text, out decimal utmMax))
             {
                 MessageBox.Show(string.Concat(Properties.Resources.UtmMax, ". ", Properties.Resources.DataWillNotBeSaved), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(TbUfmMax.Text) && !decimal.TryParse(TbUfmMax.Text, out decimal ufmMax))
+            {
+                MessageBox.Show(string.Concat(Properties.Resources.UfmMax, ". ", Properties.Resources.DataWillNotBeSaved), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Exclamation);
                 return false;
             }
 

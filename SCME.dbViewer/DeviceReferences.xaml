@@ -51,6 +51,7 @@
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.UdsmMin}" Binding="{Binding Path=UDSMMIN}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.UrsmMin}" Binding="{Binding Path=URSMMIN}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.UtmMax}" Binding="{Binding Path=UTMMAX, StringFormat=N2}"/>
+                <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.UfmMax}" Binding="{Binding Path=UFMMAX, StringFormat=N2}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.IdrmMax}" Binding="{Binding Path=IDRMMAX}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.IrrmMax}" Binding="{Binding Path=IRRMMAX}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentCenterDataGridStyle}" Header="{x:Static res:Resources.dUdtMin}" Binding="{Binding Path=DUDTMIN}"/>
