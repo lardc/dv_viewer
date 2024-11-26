@@ -472,6 +472,33 @@ namespace SCME.dbViewer
             return result;
         }
 
+        public static string NrmDescr(string name, object minValue, object maxValue)
+        {
+            string result = null;
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                if ((minValue != null) && (maxValue != null))
+                {
+                    result = string.Format("{0}≤{1}≤{2}", minValue, name, maxValue);
+                }
+                else
+                {
+                    //или minValue=null или maxValue=null, либо они оба равны null
+                    if ((minValue != null) || (maxValue != null))
+                    {
+                        if (minValue == null)
+                            result = string.Format("{0}≤{1}", name, maxValue);
+
+                        if (maxValue == null)
+                            result = string.Format("{0}≤{1}", minValue, name);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         /*
         public static string DescrByTemperatureMode(string temperatureModes, string values)
         {
@@ -1474,7 +1501,7 @@ namespace SCME.dbViewer
                         double temperature = (temperatureValuesList.Count - 1 >= index) ? temperatureValuesList[index] : 25;
 
                         //хранимая процедура чтения порции данных может прочитать из базы данных пустое множество параметров изделия - в этом случае xmlDeviceParameters будет иметь значение "EMPTY"
-                        //так сделано чтобы не потерять соответствие между темепературными режимами и считанными наборами параметров
+                        //так сделано чтобы не потерять соответствие между температурными режимами и считанными наборами параметров
                         if (xmlDeviceParameters != "EMPTY")
                         {
                             xmlDoc = new XmlDocument();
@@ -2316,11 +2343,23 @@ namespace SCME.dbViewer
             public string UnitMeasure { get; }
         }
 
-        public static List<ParamConditionDescr> AssemblyProtocolEmptyNamesByDeviceTypeRu(string deviceTypeRu)
+        public class ParamConditionDescrFirstLine : ParamConditionDescr
+        {
+            public ParamConditionDescrFirstLine(string temperatureMode, string descr, string unitMeasure) : base(temperatureMode, descr, unitMeasure)
+            {
+            }
+        }
+
+        public class ParamConditionDescrSecondLine : ParamConditionDescr
+        {
+            public ParamConditionDescrSecondLine(string temperatureMode, string descr, string unitMeasure) : base(temperatureMode, descr, unitMeasure)
+            {
+            }
+        }
+
+        public static IEnumerable<ParamConditionDescr> AssemblyProtocolEmptyNamesByDeviceTypeRu(string deviceTypeRu)
         {
             //для принятого типа изделия deviceTypeRu возвращает список имён параметров/условий, которые пользователь хочет видеть в отчёте протокола сборки с пустыми значениями, которые заполнит пользователь (шапка таблицы)
-            List<ParamConditionDescr> result = null;
-
             switch (deviceTypeRu)
             {
                 case "МТ":
@@ -2332,8 +2371,8 @@ namespace SCME.dbViewer
                 case "ТБИ":
                 case "ТБЧ":
                 case "ТЛ":
-                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBO", "В"), new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UTM", "В"), new ParamConditionDescr("RT", "IGT", "мА"), new ParamConditionDescr("RT", "UGT", "В"), new ParamConditionDescr("TM", "UDRM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IDRM", "мА"), new ParamConditionDescr("TM", "IRRM", "мА"), new ParamConditionDescr("TM", Common.Constants.DUdt, "В/мкс"), new ParamConditionDescr("TM", "UDSM", "В"), new ParamConditionDescr("TM", "URSM", "В") };
-                    break;
+                    //ITM, UDRM, URRM создаём как ParamConditionDescrSecondLine, остальные как ParamConditionDescrFirstLine с целью различения при выводе в отчёт
+                    return new ParamConditionDescr[] { new ParamConditionDescrFirstLine("RT", "UBO", "В"), new ParamConditionDescrFirstLine("RT", "UBR", "В"), new ParamConditionDescrSecondLine("RT", "ITM", "А"), new ParamConditionDescrFirstLine("RT", "UTM", "В"), new ParamConditionDescrFirstLine("RT", "IGT", "мА"), new ParamConditionDescrFirstLine("RT", "UGT", "В"), new ParamConditionDescrSecondLine("TM", "UDRM", "В"), new ParamConditionDescrSecondLine("TM", "URRM", "В"), new ParamConditionDescrFirstLine("TM", "IDRM", "мА"), new ParamConditionDescrFirstLine("TM", "IRRM", "мА"), new ParamConditionDescrFirstLine("TM", Common.Constants.DUdt, "В/мкс"), new ParamConditionDescrFirstLine("TM", "UDSM", "В"), new ParamConditionDescrFirstLine("TM", "URSM", "В") };
 
                 case "Д":
                 case "ДЛ":
@@ -2343,11 +2382,11 @@ namespace SCME.dbViewer
                 case "МДТ":
                 case "МДЧ":
                 case "МДЧЛ":
-                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UFM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IRRM", "мА"), new ParamConditionDescr("TM", "URSM", "В") };
-                    break;
+                    //ITM, URRM создаём как ParamConditionDescrSecondLine, остальные как ParamConditionDescrFirstLine с целью различения при выводе в отчёт
+                    return new ParamConditionDescr[] { new ParamConditionDescrFirstLine("RT", "UBR", "В"), new ParamConditionDescrSecondLine("RT", "ITM", "А"), new ParamConditionDescrFirstLine("RT", "UFM", "В"), new ParamConditionDescrSecondLine("TM", "URRM", "В"), new ParamConditionDescrFirstLine("TM", "IRRM", "мА"), new ParamConditionDescrFirstLine("TM", "URSM", "В") };
             }
 
-            return result;
+            return null;
         }
 
         public class GroupDescr

@@ -10,6 +10,7 @@
         mc:Ignorable="d"
         Title="{x:Static res:Resources.SelectGroupName}" Height="800" Width="1000"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         PreviewKeyDown="Window_PreviewKeyDown"
         FocusManager.FocusedElement="{Binding ElementName=dgGroupNames}">
 

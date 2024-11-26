@@ -23,7 +23,7 @@ namespace SCME.dbViewer
         //желаемый пользователем порядок следования столбцов для вывода в Excel отчёт:
         //все обозначения в нижнем регистре, т.к. это содержимое сравнивается с содержимым от вызова Row.GetDynamicMemberNames();
         //именование содержимого - в терминах базы данных;
-        //в этом списке есть как измеряемые параметры, так и условия измерений (dUdt)
+        //в этом списке есть как измеряемые параметры, так и условия измерений dvdt_voltagerate (dUdt)
         public static readonly string[] OrderedColumnNamesInReport = { "sl_itm", "vdrm", "vrrm", "idrm", "irrm", "dvdt_voltagerate", "vtm", "prsm", "tq", "trr", "irm", "qrr", "igt", "vgt", "ih", "rg" };
 
         public const string Prof_ID = "PROF_ID";
@@ -78,7 +78,8 @@ namespace SCME.dbViewer
         public const string dUdt = "dUdt";
         public const string Trr = "trr";
         public const string Tq = "tq";
-        public const string Tgt = "tgt";        
+        public const string Tgt = "tgt";
+        public const string Prsm = "PRSM";
         public const string Qrr = "Qrr";
         
 

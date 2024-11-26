@@ -127,7 +127,7 @@ namespace OpenXml
 
                     //OddFooter oddFooter = new OddFooter("&L&\"Times New Roman,Regular\"Page &P of &N&C&\"Times New Roman,Regular\"Generated On: &D Central&R&\"Times New Roman,Regular\"Report"); //"&L&\"Лист &P, листов &N"
                     OddFooter oddFooter = new OddFooter(footerText);
-                    
+
                     headerFooter.AddChild(oddFooter);
                 }
 
@@ -219,8 +219,7 @@ namespace OpenXml
         public static double WidthToOpenXml(double width)
         {
             //пересчитываем пиксели в ширину Excel: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/7902415
-            //double openXmlWidth = 1 + (size.Width - 9) / 7f;
-            return 0.4 + Math.Truncate(width / 6.12 * 256) / 256;
+            return (width - 12 + 5) / 7d + 1;
         }
 
         private static double HeightToOpenXml(double height)

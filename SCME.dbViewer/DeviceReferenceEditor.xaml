@@ -103,12 +103,12 @@
 
         <StackPanel Grid.Column="4" Grid.Row="3" Orientation="Vertical">
             <Label Content="{x:Static res:Resources.IdrmMax}" FontSize="12"/>
-            <TextBox x:Name="TbIdrmMax" FontSize="16"/>
+            <TextBox x:Name="TbIdrmMax" FontSize="16" LostFocus="TbIdrmMax_LostFocus" />
         </StackPanel>
 
         <StackPanel Grid.Column="0" Grid.Row="4" Orientation="Vertical">
             <Label Content="{x:Static res:Resources.IrrmMax}" FontSize="12"/>
-            <TextBox x:Name="TbIrrmMax" FontSize="16"/>
+            <TextBox x:Name="TbIrrmMax" FontSize="16" LostFocus="TbIrrmMax_LostFocus" />
         </StackPanel>
 
         <StackPanel Grid.Column="2" Grid.Row="4" Orientation="Vertical">

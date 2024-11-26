@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SCME.dbViewer
@@ -262,6 +263,24 @@ namespace SCME.dbViewer
         {
             if (this.CheckData())
                 this.DialogResult = true;
+        }
+
+        private void TbIdrmMax_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if ((sender is TextBox tb) && (!string.IsNullOrEmpty(tb.Text)))
+            {
+                if (string.IsNullOrEmpty(this.TbIrrmMax.Text))
+                    this.TbIrrmMax.Text = tb.Text;
+            }
+        }
+
+        private void TbIrrmMax_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if ((sender is TextBox tb) && (!string.IsNullOrEmpty(tb.Text)))
+            {
+                if (string.IsNullOrEmpty(this.TbIdrmMax.Text))
+                    this.TbIdrmMax.Text = tb.Text;
+            }
         }
     }
 }

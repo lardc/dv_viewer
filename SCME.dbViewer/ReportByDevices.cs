@@ -1123,10 +1123,11 @@ namespace SCME.dbViewer.ForParameters
                 Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column, this.Omnity);
                 cell.StyleIndex = styleIndex;
 
+                /*
                 //считываем установленный пользователем тип изделия для данного протокола сборки
                 //он нужен для того, чтобы определить сколько столбцов занять надписью "Сформировал"
                 string deviceTypeRu = this.Owner[0].DeviceTypeRu;
-
+                
                 //для типов, начинающихся с m (англ.) или м (русск.) надо занять 3 столбца, для любых других типов 2 столбца
                 uint columnsToAdd;
 
@@ -1136,10 +1137,11 @@ namespace SCME.dbViewer.ForParameters
                 }
                 else
                     columnsToAdd = this.IsDeviceTypeRuMStarting(deviceTypeRu) ? (uint)2 : (uint)1;
+                */
 
                 column = 13;
                 value = "Сформировал";
-                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + columnsToAdd, value, styleIndex);
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 2, value, styleIndex);
 
                 value = ((MainWindow)System.Windows.Application.Current.MainWindow).TabNum;
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column, value);
@@ -1172,7 +1174,7 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void TableColumnNamesToExcel(SpreadsheetDocument spreadsheetDocument, List<NameDescr> columNames, uint rowNum, out uint? firstUserDataColumn, out uint? lastUserDataColumn, out uint? lastColumn)
+        public void TableColumnNamesToExcel(SpreadsheetDocument spreadsheetDocument, List<NameDescr> columNames, List<ParamReference> norms, uint rowNum, out uint? firstUserDataColumn, out uint? lastUserDataColumn, out uint? lastColumn)
         {
             firstUserDataColumn = null;
             lastUserDataColumn = null;
@@ -1186,11 +1188,22 @@ namespace SCME.dbViewer.ForParameters
 
                 string value;
                 Cell cell;
-                uint styleIndex;
+
+                //сразу создаём все стили которые потребуются в данной реализации 
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint boldStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint centerBoldStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                uint centerStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                uint boldLeftStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Bottom, typeof(string));
 
                 uint column = 4;
                 uint columnIndexInExcel = column;
                 uint? columnsCount = null;
+
+                //места хранения номеров столбцов (данные заполняемые вручную после распечатки отчёта) с именами: UTM, IDRM, IRRM
+                uint? indexOfEmptyColumnITM = null;
+                uint? indexOfEmptyColumnUDRM = null;
+                uint? indexOfEmptyColumnURRM = null;
 
                 //сначала выводим содержимое принятого columNames
                 foreach (NameDescr nameDescr in columNames)
@@ -1202,27 +1215,26 @@ namespace SCME.dbViewer.ForParameters
 
                     value = string.Concat(nameDescr.TemperatureCondition.ToString(), " ", nameDescr.TemperatureValue);
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = styleIndex;
 
                     //выводим имя условия/параметра
                     value = this.ColumnName(nameDescr.Name, nameDescr.Subject, nameDescr.TemperatureCondition);
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel, value);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = boldStyleIndex;
 
                     //выводим единицу измерения
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel, nameDescr.UnitMeasure);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = styleIndex;
 
                     //выводим описание норм
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndexInExcel, nameDescr.Nrm);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = boldStyleIndex;
                 }
 
                 if (columnsCount != 0)
                 {
                     value = "Параметры на ППЭ";
-                    styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
-                    OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, column, startRowNum, column + (uint)columnsCount, value, styleIndex);
+                    OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, column, startRowNum, column + (uint)columnsCount, value, centerStyleIndex);
                 }
 
                 //выводим список имён параметров которые пользователь будет заполнять руками на распечанном отчёте
@@ -1231,10 +1243,10 @@ namespace SCME.dbViewer.ForParameters
 
                 if (deviceTypeRu != null)
                 {
-                    //по считанному типу изделия получаем список имён параметров/условий
-                    List<SCME.dbViewer.Routines.ParamConditionDescr> listOfNames = Routines.AssemblyProtocolEmptyNamesByDeviceTypeRu(deviceTypeRu);
+                    //по считанному типу изделия получаем список имён столбцов для ручного заполнения после печати отчёта которые надо вывести в первой строке (это параметры, значения которых пользователь напишет руками в уже распечанный отчёт)
+                    IEnumerable<Routines.ParamConditionDescr> listOfNamesFirstLine = Routines.AssemblyProtocolEmptyNamesByDeviceTypeRu(deviceTypeRu).Where(x => x is Routines.ParamConditionDescrFirstLine);
 
-                    if (listOfNames != null)
+                    if (listOfNamesFirstLine.Count() > 0)
                     {
                         columnIndexInExcel++;
 
@@ -1242,26 +1254,55 @@ namespace SCME.dbViewer.ForParameters
                         firstUserDataColumn = columnIndexInExcel;
 
                         columnsCount = null;
+                        uint? columnIndex = null;
 
-                        foreach (SCME.dbViewer.Routines.ParamConditionDescr name in listOfNames)
+                        foreach (Routines.ParamConditionDescr name in listOfNamesFirstLine)
                         {
                             columnsCount = (columnsCount == null) ? 0 : columnsCount + 1;
+                            columnIndex = firstUserDataColumn + columnsCount;
 
-                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel + (uint)columnsCount, name.TemperatureMode);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, (uint)columnIndex, name.TemperatureMode);
+                            cell.StyleIndex = styleIndex;
 
-                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel + (uint)columnsCount, name.Descr);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, (uint)columnIndex, name.Descr);
+                            cell.StyleIndex = boldStyleIndex;
 
-                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel + (uint)columnsCount, name.UnitMeasure);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            switch (name.Descr)
+                            {
+                                case "UTM":
+                                    indexOfEmptyColumnITM = columnIndex;
+                                    break;
+
+                                case "IDRM":
+                                    indexOfEmptyColumnUDRM = columnIndex;
+                                    break;
+
+                                case "IRRM":
+                                    indexOfEmptyColumnURRM = columnIndex;
+                                    break;
+                            }
+
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, (uint)columnIndex, name.UnitMeasure);
+                            cell.StyleIndex = styleIndex;
+
+                            string normDescr = string.Empty;
+
+                            if (norms.Count() > 0)
+                            {
+                                ParamReference paramReference = norms.Where(x => x.Name == name.Descr).FirstOrDefault();
+
+                                if (paramReference != null)
+                                    normDescr = Routines.NrmDescr(paramReference.MinValue, paramReference.MaxValue);
+                            }
+
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, (uint)columnIndex, normDescr);
+                            cell.StyleIndex = boldStyleIndex;
                         }
 
-                        lastUserDataColumn = columnIndexInExcel + columnsCount;
+                        lastUserDataColumn = columnIndex;
 
                         value = "№ прибора";
-                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                        OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 1, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 1, value, styleIndex);
+                        OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, (uint)columnIndex + 1, startRowNum + 4, (uint)columnIndex + 1, value, centerBoldStyleIndex);
 
                         //здесь будем учитывать количество добавляемых столбцов в зависимости от типа изделия
                         uint additionColumnsByDeviceType = 0;
@@ -1270,45 +1311,72 @@ namespace SCME.dbViewer.ForParameters
                         if (this.IsDeviceTypeRuMStarting(deviceTypeRu))
                         {
                             value = "Visol";
-                            styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                            OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 2, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 2, value, styleIndex);
-
+                            OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, (uint)columnIndex + 2, startRowNum + 4, (uint)columnIndex + 2, value, centerBoldStyleIndex);
                             additionColumnsByDeviceType = 1;
                         }
 
                         value = "Примечания";
-                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                        OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 2 + additionColumnsByDeviceType, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 2 + additionColumnsByDeviceType, value, styleIndex);
+                        OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, (uint)columnIndex + 2 + additionColumnsByDeviceType, startRowNum + 4, (uint)columnIndex + 2 + additionColumnsByDeviceType, value, centerBoldStyleIndex);
 
                         //возвращаем номер последнего выведенного столбца
-                        lastColumn = columnIndexInExcel + columnsCount + 2 + additionColumnsByDeviceType;
+                        lastColumn = (uint)columnIndex + 2 + additionColumnsByDeviceType;
                     }
                 }
 
                 value = "Параметры на СПП";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel, startRowNum, columnIndexInExcel + (uint)columnsCount, value, styleIndex);
-
-                //создаём пустые ячейки с очерченными границами в строке где выводятся нормы, но в столбцах отведённых под ручное написание параметров на СПП                
-                for (uint columnIndex = columnIndexInExcel; columnIndex <= columnIndexInExcel + (uint)columnsCount; columnIndex++)
-                {
-                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndex, string.Empty);
-                    cell.StyleIndex = styleIndex;
-                }
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel, startRowNum, columnIndexInExcel + (uint)columnsCount, value, centerStyleIndex);
 
                 rowNum = 6;
                 column = 1;
 
                 value = "№ п/п";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum + 2, column, value, styleIndex);
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum + 2, column, value, centerStyleIndex);
 
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 1, rowNum + 2, column + 1, Properties.Resources.Code, styleIndex);
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 1, rowNum + 2, column + 1, Properties.Resources.Code, centerStyleIndex);
 
                 value = "ПЗ ППЭ";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
-                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 2, rowNum + 2, column + 2, value, styleIndex);
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 2, rowNum + 2, column + 2, value, centerStyleIndex);
+
+                //по считанному типу изделия получаем список имён столбцов для ручного заполнения после печати отчёта которые надо вывести во второй строке (это условия при которых выполнялись измерения, полъзователь от руки их заполнит в уже распечатанном отчёте, норм у них нет в принципе)
+                IEnumerable<Routines.ParamConditionDescr> listOfNamesSecondLine = Routines.AssemblyProtocolEmptyNamesByDeviceTypeRu(deviceTypeRu).Where(x => x is Routines.ParamConditionDescrSecondLine);
+
+                if (listOfNamesSecondLine.Count() > 0)
+                {
+                    foreach (Routines.ParamConditionDescr name in listOfNamesSecondLine)
+                    {
+                        switch (name.Descr)
+                        {
+                            case "ITM":
+                                if (indexOfEmptyColumnITM != null)
+                                {
+                                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, 9, (uint)indexOfEmptyColumnITM, string.Concat(name.Descr, "=       , ", name.UnitMeasure));
+                                    cell.StyleIndex = boldLeftStyleIndex;
+                                }
+
+                                break;
+
+                            case "UDRM":
+                                if (indexOfEmptyColumnUDRM != null)
+                                {
+                                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, 9, (uint)indexOfEmptyColumnUDRM, string.Concat(name.Descr, "=       , ", name.UnitMeasure));
+                                    cell.StyleIndex = boldLeftStyleIndex;
+                                }
+
+                                break;
+
+                            case "URRM":
+                                if (indexOfEmptyColumnURRM != null)
+                                {
+                                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, 9, (uint)indexOfEmptyColumnURRM, string.Concat(name.Descr, "=       , ", name.UnitMeasure));
+                                    cell.StyleIndex = boldLeftStyleIndex;
+                                }
+
+                                break;
+                        }
+                    }
+                }
+
+                column = columnIndexInExcel;
             }
         }
 
@@ -1466,14 +1534,20 @@ namespace SCME.dbViewer.ForParameters
 
                 Dictionary<uint, double> maxWidthColumnsInPixel = OpenXmlRoutines.MaxWidthColumnsInPixel(spreadsheetDocument, rowHeight);
 
+                const double minWidth = 8d;
+                double width;
+
                 //формируем описание столбцов в columns - устанавливаем ширину столбца
                 foreach (KeyValuePair<uint, double> entry in maxWidthColumnsInPixel)
                 {
                     switch ((entry.Key >= firstUserColumn) && (entry.Key <= lastColumn))
                     {
                         case true:
-                            //устанавливаем ширину столбцов равной фиксированному значению, ибо эти столбцы всегда пустые и пользователь вносит туда данные вручную
-                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = DocumentFormat.OpenXml.DoubleValue.FromDouble(8), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
+                            //имеем дело со столбцами в которые пользователь вручную вписывает данные в уже распечатанный отчёт
+                            //если автоматически вычисленная ширина меньше некоего фиксированного значения - устанавливаем ширину столбцов равной этому фиксированному значению
+                            width = (entry.Value < minWidth) ? minWidth : entry.Value;
+
+                            columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(width), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
                             break;
 
                         default:
@@ -1506,24 +1580,148 @@ namespace SCME.dbViewer.ForParameters
 
                 uint dataStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Bottom, typeof(string));
 
-                if (!string.IsNullOrEmpty(this.Tq))
+                //если пользователь ввёл значение параметра в шапке протокола сборки - используем это значение для указание предельного допустимого значения параметра, даже если в справочнике норм (таблица DeviceReferences) есть противоречащее ему описание норм
+                //это правило для всех выводимых параметров
+
+                //------------------------------------------------------------------------------------
+                string name = Constants.Tgt;
+                value = null;
+
+                if (string.IsNullOrEmpty(this.Tgt))
                 {
-                    value = string.Format("{0}≤{1} {2}", Constants.Tq, this.Tq, "мкс");
+                    //в шапке протокола сборки пользователь не выбрал значение данного параметра - читаем справочник норм
+                    if (norms != null)
+                    {
+                        ParamReference paramReference = norms.Where(x => x.Name == name).FirstOrDefault();
+
+                        if (paramReference != null)
+                            value = Routines.NrmDescr(name, paramReference.MinValue, paramReference.MaxValue);
+                    }
+                }
+                else
+                    value = Routines.NrmDescr(name, null, this.Tgt);
+
+                if (value != null)
+                {
+                    value = string.Concat(value, " мкс");
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
                     cell.StyleIndex = dataStyleIndex;
 
                     rowNumOffSet++;
                 }
 
-                if (!string.IsNullOrEmpty(this.Trr))
+                //------------------------------------------------------------------------------------
+                name = Constants.Prsm;
+                value = null;
+
+                //в шапке протокола сборки Prsm не существует - читаем справочник норм
+                //для данного параметра нормы всегда описываются в виде Prsm=значение
+                if (norms != null)
                 {
-                    value = string.Format("{0}≤{1} {2}", Constants.Trr, this.Trr, "мкс");
+                    ParamReference paramReference = norms.Where(x => x.Name == name).FirstOrDefault();
+
+                    if (paramReference != null)
+                        value = string.Format("{0}={1}", name, paramReference.MinValue);
+                }
+
+                if (value != null)
+                {
+                    value = string.Concat(value, " кВт");
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
                     cell.StyleIndex = dataStyleIndex;
 
                     rowNumOffSet++;
                 }
 
+                //------------------------------------------------------------------------------------
+                name = Constants.Trr;
+                value = null;
+
+                if (string.IsNullOrEmpty(this.Trr))
+                {
+                    //в шапке протокола сборки пользователь не выбрал значение данного параметра - читаем справочник норм
+                    if (norms != null)
+                    {
+                        ParamReference paramReference = norms.Where(x => x.Name == name).FirstOrDefault();
+
+                        if (paramReference != null)
+                            value = Routines.NrmDescr(name, paramReference.MinValue, paramReference.MaxValue);
+                    }
+                }
+                else
+                {
+                    value = Routines.NrmDescr(name, null, this.Trr);
+                }
+
+                if (value != null)
+                {
+                    value = string.Concat(value, " мкс");
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
+                    cell.StyleIndex = dataStyleIndex;
+
+                    rowNumOffSet++;
+                }
+
+                //------------------------------------------------------------------------------------
+                name = Constants.Tq;
+                value = null;
+
+                if (string.IsNullOrEmpty(this.Tq))
+                {
+                    //в шапке протокола сборки пользователь не выбрал значение данного параметра - читаем справочник норм
+                    if (norms != null)
+                    {
+                        ParamReference paramReference = norms.Where(x => x.Name == name).FirstOrDefault();
+
+                        if (paramReference != null)
+                            value = Routines.NrmDescr(name, paramReference.MinValue, paramReference.MaxValue);
+                    }
+                }
+                else
+                {
+                    value = Routines.NrmDescr(name, null, this.Tq);
+                }
+
+                if (value != null)
+                {
+                    value = string.Concat(value, " мкс");
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
+                    cell.StyleIndex = dataStyleIndex;
+
+                    rowNumOffSet++;
+                }
+
+                //------------------------------------------------------------------------------------
+                name = Constants.Qrr;
+                value = null;
+
+                if (string.IsNullOrEmpty(this.Qrr))
+                {
+                    //в шапке протокола сборки пользователь не выбрал значение данного параметра - читаем справочник норм
+                    if (norms != null)
+                    {
+                        ParamReference paramReference = norms.Where(x => x.Name == name).FirstOrDefault();
+
+                        if (paramReference != null)
+                            value = Routines.NrmDescr(name, paramReference.MinValue, paramReference.MaxValue);
+                    }
+                }
+                else
+                {
+                    value = Routines.NrmDescr(name, null, this.Qrr);
+                }
+
+                if (value != null)
+                {
+                    value = string.Concat(value, " мкКл");
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
+                    cell.StyleIndex = dataStyleIndex;
+
+                    rowNumOffSet++;
+                }
+
+
+                /*
                 if (!string.IsNullOrEmpty(this.Qrr))
                 {
                     value = string.Format("{0}≤{1} {2}", Constants.Qrr, this.Qrr, "мкКл");
@@ -1536,15 +1734,6 @@ namespace SCME.dbViewer.ForParameters
                 if (!string.IsNullOrEmpty(this.DUdt))
                 {
                     value = string.Format("{0}≥{1} {2}", Common.Constants.DUdt, this.DUdt, this.DUdtUnitMeasure);
-                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
-                    cell.StyleIndex = dataStyleIndex;
-
-                    rowNumOffSet++;
-                }
-
-                if (!string.IsNullOrEmpty(this.Tgt))
-                {
-                    value = string.Format("{0}≤{1} {2}", Constants.Tgt, this.Tgt, "мкс");
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
                     cell.StyleIndex = dataStyleIndex;
 
@@ -1572,6 +1761,7 @@ namespace SCME.dbViewer.ForParameters
 
                     rowNumOffSet++;
                 }
+                */
 
                 value = "Статистика:";
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum + rowNumOffSet, column, rowNum + rowNumOffSet, column + 5, value, styleIndex);
@@ -1597,33 +1787,32 @@ namespace SCME.dbViewer.ForParameters
                 }
 
                 //выводим количество записей в отчёте
-                column = lastColumn - 7;
+                column = 8; //lastColumn - 7;
                 value = "Количество";
-                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, value);
-                cell.StyleIndex = dataStyleIndex;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 3, value, dataStyleIndex);
 
                 uint dataCenterStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
-                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column + 6, this.AssemblyReportRecordCount);
-                cell.StyleIndex = dataCenterStyleIndex;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 5, rowNum, column + 6, string.Concat(this.AssemblyReportRecordCount, " шт."), dataCenterStyleIndex);
 
+                /*
                 value = "шт.";
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column + 7, value);
                 cell.StyleIndex = dataCenterStyleIndex;
+                */
 
                 //выводим запущенное по ПЗ количество изделий
                 value = "Общее количество в ПЗ";
-                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column, value);
-                cell.StyleIndex = dataStyleIndex;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum + 1, column, rowNum + 1, column + 4, value, dataStyleIndex);
 
                 string qtyReleasedByGroupName = this.QtyReleasedByGroupName?.ToString();
                 if (qtyReleasedByGroupName != null)
                 {
-                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column + 6, qtyReleasedByGroupName);
-                    cell.StyleIndex = dataCenterStyleIndex;
-
+                    OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum + 1, column + 5, rowNum + 1, column + 6, string.Concat(qtyReleasedByGroupName, " шт."), dataCenterStyleIndex);
+                    /*
                     value = "шт.";
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, column + 7, value);
                     cell.StyleIndex = dataCenterStyleIndex;
+                    */
                 }
             }
         }
@@ -2191,32 +2380,10 @@ namespace SCME.dbViewer.ForParameters
             //считываем описание норм из справочника с нормами на изделия DeviceReferences
             if (norms != null)
             {
-                if (DbRoutines.DeviceReferences(itav, deviceTypeID, constructive, modification, out int? idrmMax, out decimal? utmMax, out int? qrrMax, out int? igtMax, out decimal? ugtMax, out int? tjMax, out int? prsmMin, out string caseType, out decimal? utmCorrection) != -1)
+                if (DbRoutines.DeviceReferences(itav, deviceTypeID, constructive, modification, out int? igtMax, out decimal? ugtMax, out decimal? tgtMax, out int? ubrMin, out int? udsmMin, out int? ursmMin, out decimal? utmMax, out int? idrmMax, out int? irrmMax, out int? dUdtMin, out int? prsmMin, out decimal? trrMin, out decimal? tqMin, out int? risolMin, out int? uisolMin, out int? qrrMax, out int? tjMax, out string caseType, out decimal? utmCorrection) != -1)
                 {
                     norms.Clear();
                     ParamReference paramReference;
-
-                    if (idrmMax != null)
-                    {
-                        //то, что справедливо для IDRM, так же справедливо и для IRRM
-                        paramReference = new ParamReference { Name = "IDRM", MinValue = null, MaxValue = idrmMax };
-                        norms.Add(paramReference);
-
-                        paramReference = new ParamReference { Name = "IRRM", MinValue = null, MaxValue = idrmMax };
-                        norms.Add(paramReference);
-                    }
-
-                    if (utmMax != null)
-                    {
-                        paramReference = new ParamReference { Name = "UTM", MinValue = null, MaxValue = ((decimal)utmMax).ToString("0.00") };
-                        norms.Add(paramReference);
-                    }
-
-                    if (qrrMax != null)
-                    {
-                        paramReference = new ParamReference { Name = Common.Constants.Qrr, MinValue = null, MaxValue = qrrMax };
-                        norms.Add(paramReference);
-                    }
 
                     if (igtMax != null)
                     {
@@ -2230,9 +2397,51 @@ namespace SCME.dbViewer.ForParameters
                         norms.Add(paramReference);
                     }
 
-                    if (tjMax != null)
+                    if (tgtMax != null)
                     {
-                        paramReference = new ParamReference { Name = "TjMax", MinValue = null, MaxValue = tjMax };
+                        paramReference = new ParamReference { Name = "TGT", MinValue = null, MaxValue = ((decimal)tgtMax).ToString("0.00") };
+                        norms.Add(paramReference);
+                    }
+
+                    if (ubrMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "UBR", MinValue = ubrMin, MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (udsmMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "UDSM", MinValue = udsmMin, MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (ursmMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "URSM", MinValue = ursmMin, MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (utmMax != null)
+                    {
+                        paramReference = new ParamReference { Name = "UTM", MinValue = null, MaxValue = ((decimal)utmMax).ToString("0.00") };
+                        norms.Add(paramReference);
+                    }
+
+                    if (idrmMax != null)
+                    {
+                        paramReference = new ParamReference { Name = "IDRM", MinValue = null, MaxValue = idrmMax };
+                        norms.Add(paramReference);
+                    }
+
+                    if (irrmMax != null)
+                    {
+                        paramReference = new ParamReference { Name = "IRRM", MinValue = null, MaxValue = irrmMax };
+                        norms.Add(paramReference);
+                    }
+
+                    if (dUdtMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "dU/dt", MinValue = dUdtMin, MaxValue = null };
                         norms.Add(paramReference);
                     }
 
@@ -2241,6 +2450,48 @@ namespace SCME.dbViewer.ForParameters
                         paramReference = new ParamReference { Name = "PRSM", MinValue = prsmMin, MaxValue = null };
                         norms.Add(paramReference);
                     }
+
+                    if (trrMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "TRR", MinValue = ((decimal)trrMin).ToString("0.00"), MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (tqMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "TQ", MinValue = ((decimal)tqMin).ToString("0.00"), MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (risolMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "RISOL", MinValue = risolMin, MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (uisolMin != null)
+                    {
+                        paramReference = new ParamReference { Name = "UISOL", MinValue = uisolMin, MaxValue = null };
+                        norms.Add(paramReference);
+                    }
+
+                    if (qrrMax != null)
+                    {
+                        paramReference = new ParamReference { Name = Common.Constants.Qrr, MinValue = null, MaxValue = qrrMax };
+                        norms.Add(paramReference);
+                    }
+
+                    if (tjMax != null)
+                    {
+                        paramReference = new ParamReference { Name = "TjMax", MinValue = null, MaxValue = tjMax };
+                        norms.Add(paramReference);
+                    }
+
+                    /*
+                    не используем
+                    string caseType
+                    decimal? utmCorrection
+                    */
                 }
             }
         }
@@ -2287,9 +2538,6 @@ namespace SCME.dbViewer.ForParameters
                 //при этом на момент работы данной реализации уже проверено, что все значения dvdt_voltagerate формируемого отчёта удовлетворяют выбранному пользователем значению в шапке протокола сборки
                 List<string> referenceNames = Constants.OrderedColumnNamesInReport.Where(n => n != "dvdt_voltagerate" && n != "igt" && n != "vgt" && n != "rg").Select(n => n.ToUpper()).ToList();
 
-                //считываем нормы для выбранных пользователем среднего тока, типа изделия, конструктива и модификации
-                this.LoadNorms(itav, deviceTypeID, constructive, modification, norms);
-
                 //перебираем все записи и собираем в result множество уникальных имён параметров/условий
                 //в записи с индексом 0 хрянятся реквизиты самого протокола сборки, параметров и условий в ней нет
                 for (int i = 1; i < this.Count; i++)
@@ -2320,7 +2568,7 @@ namespace SCME.dbViewer.ForParameters
                                 Common.Routines.XMLValues subject = (columnIndex < parametersInDataSourceFirstIndex) ? Common.Routines.XMLValues.Conditions : (test == DbRoutines.cManually.ToUpper()) ? Common.Routines.XMLValues.ManuallyParameters : Common.Routines.XMLValues.Parameters;
 
                                 //технологи хотят чтобы параметры созданные вручную выводились в конце списка всех параметров - будем держать их в pcManually чтобы не путать с обычными параметрами/условиями
-                                List<NameDescr> storage = (subject == Common.Routines.XMLValues.ManuallyParameters) ? pcManually : pc; //(test == DbRoutines.cManually.ToUpper()) ? pcManually : pc;
+                                List<NameDescr> storage = (subject == Common.Routines.XMLValues.ManuallyParameters) ? pcManually : pc;
 
                                 string nrm = null;
                                 switch (subject)
@@ -2450,8 +2698,11 @@ namespace SCME.dbViewer.ForParameters
                 ReportRecord zeroRecord = this[0];
                 zeroRecord.AssemblyTopHeaderToExcel(spreadsheetDocument, assemblyProtocolDescr, ref rowNum);
 
-                //вычисляем список столбцов для данного отчёта
+                //считываем нормы для выбранных пользователем среднего тока, типа изделия, конструктива и модификации
                 List<ParamReference> norms = new List<ParamReference>();
+                this.LoadNorms(itav, deviceTypeID, constructive, modification, norms);
+
+                //вычисляем список столбцов для данного отчёта
                 List<NameDescr> allNames = this.AllNames(itav, deviceTypeID, constructive, modification, norms);
 
                 //начинаем именно с записи с индексом 1
@@ -2462,8 +2713,8 @@ namespace SCME.dbViewer.ForParameters
                     //выводим имена столбцов табличных данных один раз на весь отчёт
                     if (i == 1)
                     {
-                        r.TableColumnNamesToExcel(spreadsheetDocument, allNames, rowNum, out firstUserColumn, out lastUserColumn, out lastColumn);
-                        rowNum = 9;
+                        r.TableColumnNamesToExcel(spreadsheetDocument, allNames, norms, rowNum, out firstUserColumn, out lastUserColumn, out lastColumn);
+                        rowNum = 10;
                     }
 
                     //выводим идентификационные данные в таблицу
