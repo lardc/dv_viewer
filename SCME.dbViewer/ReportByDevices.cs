@@ -2590,7 +2590,8 @@ namespace SCME.dbViewer.ForParameters
                                 //рассматриваем два случая:
                                 // - параметр создан пользователем вручную. если в результирующем наборе нет текущего параметра с именем name - добавляем его
                                 // - параметр не является пользовательским. если в результирующем наборе нет текущего параметра с именем name, с тестом test и температурой temperatureCondition и данный параметр является желаемым параметром - добавляем его
-                                bool need = (founded.Count() == 0) && ((test == DbRoutines.cManually.ToUpper()) || (test != DbRoutines.cManually.ToUpper()) && (referenceNames.Where(n => n == trueName).Count() != 0));
+                                string nameWithoutEndNumbers = Routines.TrimEndNumbers(trueName);
+                                bool need = (founded.Count() == 0) && ((test == DbRoutines.cManually.ToUpper()) || (test != DbRoutines.cManually.ToUpper()) && (referenceNames.Where(n => n == nameWithoutEndNumbers).Count() != 0));
 
                                 if (need)
                                 {
@@ -2610,11 +2611,11 @@ namespace SCME.dbViewer.ForParameters
                 }
 
                 //множество параметров/условий уникальных по тесту, тепловому режиму и имени сформировано
-                //в нём присутствуют только те параметры/условия, которые есть в списке Constants.OrderedColumnNamesInReport
+                //в нём присутствуют только те параметры/условия, которые есть в списке Constants.OrderedColumnNamesInReport в том числе и с индексами в конце имени
                 //формируем выходное множество в соответствии с желаемым технологами порядком следования столбцов в отчёте
                 foreach (string name in referenceNames)
                 {
-                    IEnumerable<NameDescr> founded = pc.Where(n => n.Name == name);
+                    IEnumerable<NameDescr> founded = pc.Where(n => Routines.TrimEndNumbers(n.Name) == name).OrderBy(n => n.Name);
 
                     foreach (NameDescr param in founded)
                         result.Add(param);
