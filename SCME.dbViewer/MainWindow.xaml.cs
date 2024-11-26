@@ -2010,29 +2010,21 @@ namespace SCME.dbViewer
             //применяем фильтры
             this.ApplyFilters();
 
-            //узнаём идентификатор протокола сборки
-            int assemblyProtocolID = DbRoutines.AssemblyProtocolIDByDescr(descr);
+            //ставим в конец очереди
+            this.FQueueManager.Enqueue(
+                                        delegate
+                                        {
+                                            //включение режима просмотра протокола сборки
+                                            this.AssemblyProtocolMode = true;
 
-            if (assemblyProtocolID != -1)
-            {
-                //считываем данные для построения шапки протокола сборки
-                DbRoutines.LoadAssemblyProtocol(assemblyProtocolID, out bool? deviceModeView, out string assemblyJob, out bool? export, out int? deviceTypeID, out int? itav, out string modification, out string constructive, out int? deviceClass, out int? dUdt, out double? trr, out string tq, out double? tgt, out int? qrr, out string climatic, out int? omnity);
+                                            //строим шапку протокола сборки
+                                            if (int.TryParse(this.lbRecordCount.Content.ToString(), out int cacheSize))
+                                                this.BuildHeadOfAssemblyProtocol(cacheSize);
 
-                //наполняем шапку протокола сборки считанными из базы данных данными
-                this.PrepareHeadOfAssemblyProtocol(false, deviceModeView, assemblyJob, export, deviceTypeID, constructive, itav, modification, deviceClass, dUdt, trr, tq, tgt, qrr, climatic, omnity);
-
-                //ставим в конец очереди
-                this.FQueueManager.Enqueue(
-                                            delegate
-                                            {
-                                                //включение режима просмотра протокола сборки
-                                                this.AssemblyProtocolMode = true;
-
-                                                //перестраиваем столбцы которые отображают conditions/parameters в dgDevices
-                                                this.ReBuildCPColumnsForAssemblyProtocolMode();
-                                            }
-                                          );
-            }
+                                            //перестраиваем столбцы которые отображают conditions/parameters в dgDevices
+                                            this.ReBuildCPColumnsForAssemblyProtocolMode();
+                                        }
+                                      );
         }
 
         private void ContextMenuCreateAssemblyProtocol_Click(object sender, RoutedEventArgs e)
@@ -2613,30 +2605,29 @@ namespace SCME.dbViewer
                 string climatic = null;
                 int? omnity = null;
 
+                bool allRequisitesAreEmpty = true;
+
                 //смотрим сохранял ли пользователь реквизиты протокола сборки в базу данных
                 //если пользователь их сохранял ранее - отображаем эти сохранённые значения;
                 //если пользователь не сохранил ни одного реквизита протокола сборки - вычисляем их значения по содержимому кеша;
-                bool allRequisitesAreEmpty = true;
+                int assemblyProtocolID = this.AssemblyProtocolIDFromFilter();
 
-                if (cacheSize > 0)
+                if (assemblyProtocolID != -1)
                 {
-                    //все отображаемые записи имеют один и тот же протокол сборки
-                    //читаем из первой записи кеша идентификатор протокола сборки
-                    //получаем содержимое кеша
-                    List<DynamicObj> cacheData = new List<DynamicObj>();
-                    Routines.GetCacheData(cacheData, cacheSize);
+                    //смотрим сохранил ли пользователь хотя бы один реквизит протокола испытаний
+                    DbRoutines.LoadAssemblyProtocol((int)assemblyProtocolID, out deviceModeView, out assemblyJob, out export, out deviceTypeID, out itav, out modification, out constructive, out deviceClass, out dUdt, out trr, out tq, out tgt, out qrr, out climatic, out omnity);
+                    allRequisitesAreEmpty = string.IsNullOrEmpty(assemblyJob) && (deviceTypeID == null) && (itav == null) && (modification == null) && (constructive == null) && (deviceClass == null) && (dUdt == null) && (trr == null) && string.IsNullOrEmpty(tq) && (tgt == null) && (qrr == null) && string.IsNullOrEmpty(climatic) && (omnity == null);
 
-                    int? assemblyProtocolID = this.AssemblyProtocolID(cacheData.ElementAt(0));
-
-                    if ((assemblyProtocolID != null) && (assemblyProtocolID > 0))
+                    if (allRequisitesAreEmpty)
                     {
-                        DbRoutines.LoadAssemblyProtocol((int)assemblyProtocolID, out deviceModeView, out assemblyJob, out export, out deviceTypeID, out itav, out modification, out constructive, out deviceClass, out dUdt, out trr, out tq, out tgt, out qrr, out climatic, out omnity);
-
-                        //смотрим сохранил ли пользователь хотя-бы один реквизит протокола испытаний
-                        allRequisitesAreEmpty = string.IsNullOrEmpty(assemblyJob) && (deviceTypeID == null) && (itav == null) && (modification == null) && (constructive == null) && (deviceClass == null) && (dUdt == null) && (trr == null) && string.IsNullOrEmpty(tq) && (tgt == null) && (qrr == null) && string.IsNullOrEmpty(climatic) && (omnity == null);
-
-                        if (allRequisitesAreEmpty)
+                        if (cacheSize > 0)
                         {
+                            //все отображаемые записи имеют один и тот же протокол сборки
+                            //читаем из первой записи кеша идентификатор протокола сборки
+                            //получаем содержимое кеша
+                            List<DynamicObj> cacheData = new List<DynamicObj>();
+                            Routines.GetCacheData(cacheData, cacheSize);
+
                             //пользователь не сохранил ни одного реквизита протокола испытаний - предлагаем ему самые часто используемые значения вычисленные по отображаемым данным
                             //вычисляем самый часто используемый тип изделий, хранящихся в кеше
                             string sDeviceTypeID = Routines.MostPopularValue(cacheData, "DEVICETYPEID");
