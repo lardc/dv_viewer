@@ -18,15 +18,14 @@ namespace SCME.dbViewer
 
         //желаемый пользователем порядок следования столбцов для отображения, если имени нет в данном списке - то нет и отображения в DataGrid
         //все имена пишем в верхнем регистре
-        public static readonly string[] OrderedColumnNames = { "ITM", "UTM", "UBO", "UBR", "DVDT", "IDRM", "IRRM", "IDSM", "IRSM", "PRSM", "TQ", "TRR", "IRR", "QRR", "IGT", "UGT", "IH", "RG", "BVT_I", "UDRM", "URRM", "UBRMAX", "URSM", "UDSM", "DVDt_OK" }; //"ITM", "UTM", "UBO", "UBR", "DVDt", "IDRM", "IRRM", "PRSM", "TQ", "TRR", "IRR", "QRR", "IGT", "UGT", "IH"
+        public static readonly string[] OrderedColumnNames = { "ITM", "UTM", "UBO", "UBR", Common.Constants.DUdt.ToUpper(), "IDRM", "IRRM", "IDSM", "IRSM", "PRSM", Common.Constants.Tq, Common.Constants.Trr, "IRR", Common.Constants.Qrr, "IGT", "UGT", "IH", "RG", "BVT_I", "UDRM", "URRM", "UBRMAX", "URSM", "UDSM", "DVDt_OK" };
 
         //желаемый пользователем порядок следования столбцов для вывода в Excel отчёт:
         //все обозначения в нижнем регистре, т.к. это содержимое сравнивается с содержимым от вызова Row.GetDynamicMemberNames();
         //именование содержимого - в терминах базы данных;
-        //в этом списке есть как измеряемые параметры, так и условия измерений (dvdt)
+        //в этом списке есть как измеряемые параметры, так и условия измерений (dUdt)
         public static readonly string[] OrderedColumnNamesInReport = { "sl_itm", "vdrm", "vrrm", "idrm", "irrm", "dvdt_voltagerate", "vtm", "prsm", "tq", "trr", "irm", "qrr", "igt", "vgt", "ih", "rg" };
 
-        public const string DeviceComments = "DEVICECOMMENTS";
         public const string Prof_ID = "PROF_ID";
 
         /*
@@ -75,13 +74,17 @@ namespace SCME.dbViewer
         public const string Omnity = "Omnity";
         public const string Device = "Device";
         public const string DeviceTypeRu = "DeviceTypeRu";
-        public const string Tq = "tq";
+
+        public const string dUdt = "dUdt";
         public const string Trr = "trr";
+        public const string Tq = "tq";
+        public const string Tgt = "tgt";        
         public const string Qrr = "Qrr";
-        public const string dVdT = "dVdT";
-        public const string Tgt = "tgt";
+        
+
         public const string Igt = "Igt";
         public const string Ugt = "Ugt";
+
         public const string AssemblyReportRecordCount = "AssemblyReportRecordCount";
         public const string QtyReleasedByGroupName = "QtyReleasedByGroupName";
     }

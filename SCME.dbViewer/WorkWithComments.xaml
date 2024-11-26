@@ -31,7 +31,7 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
-        <customControl:DataGridSqlResult x:Name="dgDeviceComments" Grid.Row="0" ItemsSource="{Binding DeviceComments, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" SelectionMode="Single" BorderThickness="0" AutoGenerateColumns="False">
+        <customControl:DataGridSqlResult x:Name="dgDeviceComments" Grid.Row="0" ItemsSource="{Binding DeviceComments, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" SelectionMode="Single" BorderThickness="0" AutoGenerateColumns="False" LoadingRow="DgDeviceComments_LoadingRow" >
             <DataGrid.Columns>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentDataGridCenterStyle}" Header="{x:Static res:Resources.Login}" Binding="{Binding Path=USERLOGIN}"/>
                 <DataGridTextColumn CellStyle="{StaticResource BodyContentDataGridCenterStyle}" Header="{x:Static res:Resources.User}" Binding="{Binding Path=FULLUSERNAME}"/>
@@ -41,7 +41,7 @@
         </customControl:DataGridSqlResult>
 
         <Label x:Name="lbComment" Grid.Row="1" HorizontalContentAlignment="Left" FontSize="12" Content="{x:Static res:Resources.SetCommentForMeasurementGroup}"/>
-        <TextBox x:Name="tbComment" Grid.Row="2" Height="120" FontSize="18" AcceptsReturn="True" VerticalScrollBarVisibility="Visible" VerticalAlignment="Bottom" MaxLength="4000"/>
+        <TextBox x:Name="tbComment" Grid.Row="2" MaxLength="4000" Height="120" FontSize="18" AcceptsReturn="True" VerticalScrollBarVisibility="Visible" VerticalAlignment="Bottom"/>
 
         <Button Grid.Row="3" x:Name="BtOk" Content="OK" MinWidth="50" MinHeight="24" VerticalAlignment="Bottom" Margin="0,5,5,5" HorizontalAlignment="Right" Click="BtOk_Click"/>
     </Grid>

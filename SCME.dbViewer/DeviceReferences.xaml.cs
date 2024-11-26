@@ -67,7 +67,7 @@ namespace SCME.dbViewer
             {
                 DeviceReferenceEditor deviceReferenceEditor = new DeviceReferenceEditor();
 
-                if (deviceReferenceEditor.ShowModal(null, out int? createdDeviceReferenceID, 0, -1, null, null, null, null, null, null, null, null, null, null, null) ?? false)
+                if (deviceReferenceEditor.ShowModal(null, out int? createdDeviceReferenceID, 0, -1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null) ?? false)
                 {
                     //пользователь выполнил сохранение
                     this.OnPropertyChanged();
@@ -118,19 +118,9 @@ namespace SCME.dbViewer
 
                 int itav = int.Parse(this.DgDeviceReferences.ValueFromSelectedRow("ITAV").ToString());
                 int deviceTypeID = int.Parse(this.DgDeviceReferences.ValueFromSelectedRow("DEVICETYPEID").ToString());
-                string constructive = this.DgDeviceReferences.ValueFromSelectedRow("CONSTRUCTIVE").ToString();
-
+                string constructive = this.DgDeviceReferences.ValueFromSelectedRow(Common.Constants.Constructive).ToString();
                 object obj = this.DgDeviceReferences.ValueFromSelectedRow("MODIFICATION");
                 string modification = (obj == DBNull.Value) ? null : obj.ToString().Trim();
-
-                obj = this.DgDeviceReferences.ValueFromSelectedRow("IDRMMAX");
-                int? idrmMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
-
-                obj = this.DgDeviceReferences.ValueFromSelectedRow("UTMMAX");
-                decimal? utmMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
-
-                obj = this.DgDeviceReferences.ValueFromSelectedRow("QRRMAX");
-                int? qrrMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
 
                 obj = this.DgDeviceReferences.ValueFromSelectedRow("IGTMAX");
                 int? igtMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
@@ -138,11 +128,50 @@ namespace SCME.dbViewer
                 obj = this.DgDeviceReferences.ValueFromSelectedRow("UGTMAX");
                 decimal? ugtMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
 
-                obj = this.DgDeviceReferences.ValueFromSelectedRow("TJMAX");
-                int? tjMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("TGTMAX");
+                decimal? tgtMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("UBRMIN");
+                int? ubrMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("UDSMMIN");
+                int? udsmMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("URSMMIN");
+                int? ursmMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("UTMMAX");
+                decimal? utmMax = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("IDRMMAX");
+                int? idrmMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("IRRMMAX");
+                int? irrmMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("DUDTMIN");
+                int? dUdtMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
 
                 obj = this.DgDeviceReferences.ValueFromSelectedRow("PRSMMIN");
                 int? prsmMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("TRRMIN");
+                decimal? trrMin = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("TQMIN");
+                decimal? tqMin = (obj == DBNull.Value) ? null : (decimal?)decimal.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("RISOLMIN");
+                int? risolMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("UISOLMIN");
+                int? uisolMin = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("QRRMAX");
+                int? qrrMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
+
+                obj = this.DgDeviceReferences.ValueFromSelectedRow("TJMAX");
+                int? tjMax = (obj == DBNull.Value) ? null : (int?)int.Parse(obj.ToString());
 
                 string caseType = this.DgDeviceReferences.ValueFromSelectedRow("CASETYPE").ToString();
 
@@ -151,7 +180,7 @@ namespace SCME.dbViewer
 
                 DeviceReferenceEditor deviceReferenceEditor = new DeviceReferenceEditor();
 
-                if (deviceReferenceEditor.ShowModal(deviceReferenceID, out int? createdDeviceReferenceID, itav, deviceTypeID, constructive, modification, idrmMax, utmMax, qrrMax, igtMax, ugtMax, tjMax, prsmMin, caseType, utmCorrection) ?? false)
+                if (deviceReferenceEditor.ShowModal(deviceReferenceID, out int? createdDeviceReferenceID, itav, deviceTypeID, constructive, modification, igtMax, ugtMax, tgtMax, ubrMin, udsmMin, ursmMin, utmMax, idrmMax, irrmMax, dUdtMin, prsmMin, trrMin, tqMin, risolMin, uisolMin, qrrMax, tjMax, caseType, utmCorrection) ?? false)
                 {
                     //пользователь выполнил сохранение параметра
                     OnPropertyChanged();

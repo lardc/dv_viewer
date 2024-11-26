@@ -15,8 +15,8 @@ namespace SCME.dbViewer
     /// </summary>
     public partial class ManualInputDevices : Window
     {
-        const string ColumnCodeName = "CODE";
-        const string ColumnDevID = "DEV_ID";
+        const string ColumnCodeName = Common.Constants.Code;
+        const string ColumnDevID = Common.Constants.DevID;
 
         DataTable FDataSource = new DataTable();
 
@@ -128,7 +128,7 @@ namespace SCME.dbViewer
                         {
                             row = dataRowView.Row;
 
-                            if (int.TryParse(row["DEV_ID"].ToString(), out int devID))
+                            if (int.TryParse(row[Common.Constants.DevID].ToString(), out int devID))
                                 DbRoutines.DeleteFromDevices(connection, transaction, devID);
                         }
                     }
@@ -139,7 +139,7 @@ namespace SCME.dbViewer
                     transaction.Rollback();
 
                     //в результате удаления была ошибка - покажем её пользователю
-                    string errorsOnDeleted = string.Concat("'", row["CODE"].ToString(), "'.", Constants.StringDelimeter, Constants.StringDelimeter, exc.Message);
+                    string errorsOnDeleted = string.Concat("'", row[Common.Constants.Code].ToString(), "'.", Constants.StringDelimeter, Constants.StringDelimeter, exc.Message);
                     MessageBox.Show(errorsOnDeleted, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Error);
 
                     return;
@@ -1013,7 +1013,7 @@ namespace SCME.dbViewer
                             {
                                 foreach (DataRow row in this.FDataSource.Rows)
                                 {
-                                    if (int.TryParse(row["DEV_ID"].ToString(), out int devID))
+                                    if (int.TryParse(row[Common.Constants.DevID].ToString(), out int devID))
                                         DbRoutines.DeleteFromManualInputDevParam(devID, manualInputParamID);
                                 }
 
@@ -1089,7 +1089,7 @@ namespace SCME.dbViewer
                                 {
                                     foreach (DataRow row in this.FDataSource.Rows)
                                     {
-                                        if (int.TryParse(row["DEV_ID"].ToString(), out int devID))
+                                        if (int.TryParse(row[Common.Constants.DevID].ToString(), out int devID))
                                             DbRoutines.ExchangeManualInputDevParam(devID, oldManualInputParamID, newManualInputParamID);
                                     }
 
@@ -1157,7 +1157,7 @@ namespace SCME.dbViewer
                                             {
                                                 row = dataRowView.Row;
 
-                                                if (int.TryParse(row["DEV_ID"].ToString(), out int devID))
+                                                if (int.TryParse(row[Common.Constants.DevID].ToString(), out int devID))
                                                 {
                                                     DbRoutines.DeleteManualInputDevice(connection, transaction, devID);
                                                     listSelectedRows.Add(row);
@@ -1172,7 +1172,7 @@ namespace SCME.dbViewer
                                         e.Handled = true;
 
                                         //при удалении есть ошибка - покажем её пользователю
-                                        string errorsOnDeleted = string.Concat("'", row["CODE"].ToString(), "'.", Constants.StringDelimeter, Constants.StringDelimeter, exc.Message);
+                                        string errorsOnDeleted = string.Concat("'", row[Common.Constants.Code].ToString(), "'.", Constants.StringDelimeter, Constants.StringDelimeter, exc.Message);
                                         MessageBox.Show(errorsOnDeleted, Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Error);
 
                                         return;
@@ -1208,7 +1208,7 @@ namespace SCME.dbViewer
                                     {
                                         DataRow row = dataRowView.Row;
 
-                                        if (int.TryParse(row["DEV_ID"].ToString(), out int devID))
+                                        if (int.TryParse(row[Common.Constants.DevID].ToString(), out int devID))
                                         {
                                             //идентификатор DEV_ID успешно прочитан из выбранной записи - значит выбранная запись уже есть в наличии в базе данных
                                             System.Data.SqlClient.SqlConnection connection = SCME.Types.DBConnections.Connection;

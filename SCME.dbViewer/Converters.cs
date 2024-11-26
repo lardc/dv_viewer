@@ -1,19 +1,38 @@
 ﻿using System;
 using System.Windows.Data;
 using System.Globalization;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SCME.dbViewer.ForParameters;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Controls;
-using System.Data;
-using SCME.CustomControls;
 
 namespace SCME.dbViewer
 {
+    public class PermissionBitToEnableConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            //в value принимает битовую маску доступа пользователя системы
+            //в parameter принимает наименование поля к которому пользователь хочет получить доступ
+            //определяет номер бита, соответствующий наименованию поля, считывает состояние этого бита из принятой битовой маски и возвращает в качестве результата
+            if ((value is ulong permissionsLo) && (parameter is string fieldName))
+            {
+                switch (fieldName)
+                {
+                    //используется для управления свойством IsReadOnly - поэтому возвращаем инверсное значение бита разрешения
+                    case Common.Constants.DeviceComments:
+                        return !Common.Routines.IsUserCanReadCreateComments(permissionsLo);
+                }                
+            }
+            
+            return false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException("ConvertBack method is not implemented in PermissionBitToEnableConverter.");
+        }
+    }
+
     public class ChoiceEnabledMultiConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -30,7 +49,7 @@ namespace SCME.dbViewer
             //как видно f(параметр0, параметр1) есть исключающее или с инверсией
             //результат = f(параметр0, параметр1) & f(параметр2)
 
-            if ((values[0] is CustomControls.DynamicObj item) && item.GetMember("ASSEMBLYPROTOCOLDESCR", out object value))
+            if ((values[0] is CustomControls.DynamicObj item) && item.GetMember(Common.Constants.AssemblyProtocolDescr, out object value))
             {
                 if (values[1] is bool assemblyProtocolMode)
                 {
@@ -84,9 +103,9 @@ namespace SCME.dbViewer
         {
             if ((values[0] is DataGridCell cell) && (cell.Column is DataGridBoundColumn column) && (values[1] is CustomControls.DynamicObj item))
             {
-                string bindingName = Common.Routines.BindPathByColumn(column);
+                string sourceFieldName = Common.Routines.SourceFieldNameByColumn(column);
 
-                return this.ValueByColumnName(bindingName, item);
+                return this.ValueByColumnName(sourceFieldName, item);
             }
 
             return Constants.noData;
@@ -131,8 +150,8 @@ namespace SCME.dbViewer
         {
             if ((values[0] is DataGridCell cell) && (cell.Column is DataGridBoundColumn column) && (values[1] is CustomControls.DynamicObj item) && (values[2] is DataGrid dataGrid))
             {
-                string bindingName = Common.Routines.BindPathByColumn(column);
-                NrmStatus nrmStatus = Routines.IsInNrm(item, bindingName);
+                string sourceFieldName = Common.Routines.SourceFieldNameByColumn(column);
+                NrmStatus nrmStatus = Routines.IsInNrm(item, sourceFieldName);
 
                 switch (nrmStatus)
                 {
@@ -154,7 +173,7 @@ namespace SCME.dbViewer
 
                     case NrmStatus.UnCheckable:
                         //не являетя ревизитом, который надо проверять на соответствие нормам
-                        bool? checkResult = Routines.CheckValuesFromRegularFields(item, bindingName);
+                        bool? checkResult = Routines.CheckValuesFromRegularFields(item, sourceFieldName);
 
                         switch (checkResult)
                         {
@@ -195,7 +214,7 @@ namespace SCME.dbViewer
                 switch (fieldName)
                 {
                     //комментарии к изделию должны быть видны при любом значении assemblyProtocolMode, но только при наличии прав
-                    case "DEVICECOMMENTS":
+                    case Common.Constants.DeviceComments:
                         if (value is ulong permissionsLo)
                             return (Common.Routines.IsUserCanReadCreateComments(permissionsLo) || Common.Routines.IsUserCanReadComments(permissionsLo)) ? Visibility.Visible : Visibility.Collapsed;
 
@@ -232,10 +251,10 @@ namespace SCME.dbViewer
                 switch (fieldName)
                 {
                     //комментарии к изделию должны быть видны при любом значении assemblyProtocolMode, но только при наличии прав
-                    case "DEVICECOMMENTS":
+                    case Common.Constants.DeviceComments:
                         return (Common.Routines.IsUserCanReadCreateComments(permissionsLo) || Common.Routines.IsUserCanReadComments(permissionsLo)) ? Visibility.Visible : Visibility.Collapsed;
 
-                    case "REASON":
+                    case Common.Constants.Reason:
                         //в режиме протокола сборки поле 'Reason' всегда скрыто, в режиме просмотра данных видимость этого поля определяется соответствующим битом в битовой маске this.PermissionsLo
                         return assemblyProtocolMode ? Visibility.Collapsed : Common.Routines.IsUserCanReadReason(permissionsLo) ? Visibility.Visible : Visibility.Collapsed;
 

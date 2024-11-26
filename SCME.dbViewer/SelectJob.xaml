@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SCME.dbViewer"
+        xmlns:common="clr-namespace:SCME.Common;assembly=Common"
         xmlns:res="clr-namespace:SCME.dbViewer.Properties"
         xmlns:customControls="clr-namespace:SCME.CustomControls;assembly=SCME.CustomControls"
         mc:Ignorable="d"
@@ -19,9 +20,9 @@
 
         <customControls:DataGridSqlResult x:Name="dgGroupNames" Grid.Row="0" SelectedCellsChanged="dgGroupNames_SelectedCellsChanged" SelectionChanged="dgGroupNames_SelectionChanged" MouseDoubleClick="dgGroupNames_MouseDoubleClick" LoadingRow="dgGroupNames_LoadingRow" Loaded="DgGroupNames_Loaded">
             <DataGrid.Columns>
-                <DataGridTextColumn TextBlock.TextAlignment="Left" Header="{x:Static res:Resources.GroupName}" Binding="{Binding Path=GROUP_NAME}"/>
+                <DataGridTextColumn TextBlock.TextAlignment="Left" Header="{x:Static res:Resources.GroupName}" Binding="{Binding {x:Static common:Constants.GroupName}}"/>
                 <DataGridTextColumn TextBlock.TextAlignment="Center" Header="{x:Static res:Resources.DateCreated}" Binding="{Binding Path=CREATEDATE, StringFormat=dd.MM.yyyy hh:mm}"/>
-                <DataGridTextColumn TextBlock.TextAlignment="Left" Header="{x:Static res:Resources.Item}" Binding="{Binding Path=ITEM}"/>
+                <DataGridTextColumn TextBlock.TextAlignment="Left" Header="{x:Static res:Resources.Item}" Binding="{Binding {x:Static common:Constants.Item}}"/>
             </DataGrid.Columns>
         </customControls:DataGridSqlResult>
     </Grid>

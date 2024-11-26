@@ -53,7 +53,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("ASSEMBLYPROTOCOLID", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.AssemblyProtocolID, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -61,7 +61,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("ASSEMBLYPROTOCOLDESCR", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.AssemblyProtocolDescr, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -77,7 +77,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("GROUP_NAME", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.GroupName, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -85,7 +85,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("CODE", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.Code, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -121,7 +121,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("ITEM", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.Item, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -129,7 +129,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("MME_CODE", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.MmeCode, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -151,7 +151,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("TS", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.Ts, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -173,7 +173,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("DEVICECLASS", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.DeviceClass, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -181,7 +181,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("STATUS", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.Status, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -189,7 +189,7 @@ namespace SCME.dbViewer.ForParameters
         {
             get
             {
-                return (this.Row.GetMember("CODEOFNONMATCH", out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Common.Constants.CodeOfNonMatch, out object value)) ? value?.ToString() : null;
             }
         }
 
@@ -263,24 +263,24 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public string DVdT
+        public string DUdt
         {
             get
             {
-                return (this.Row.GetMember(Constants.dVdT, out object value)) ? value?.ToString() : null;
+                return (this.Row.GetMember(Constants.dUdt, out object value)) ? value?.ToString() : null;
             }
         }
 
-        public string DVdTUnitMeasure
+        public string DUdtUnitMeasure
         {
             get
             {
-                return (this.Row.GetMember(Routines.NameOfUnitMeasure(Constants.dVdT), out object value)) ? value.ToString() : null;
+                return (this.Row.GetMember(Routines.NameOfUnitMeasure(Constants.dUdt), out object value)) ? value.ToString() : null;
             }
 
             set
             {
-                this.Row.SetMember(Routines.NameOfUnitMeasure(Constants.dVdT), value);
+                this.Row.SetMember(Routines.NameOfUnitMeasure(Constants.dUdt), value);
             }
         }
 
@@ -522,7 +522,7 @@ namespace SCME.dbViewer.ForParameters
             //отвечает на вопрос о наличии группированных данных в this.Row
             bool result = false;
 
-            if (this.Row.GetMember("DEV_ID", out object valueDevID))
+            if (this.Row.GetMember(Common.Constants.DevID, out object valueDevID))
                 result = valueDevID.ToString().Contains(Constants.DelimeterForStringConcatenate);
 
             return result;
@@ -1445,7 +1445,7 @@ namespace SCME.dbViewer.ForParameters
         public void DeviceCommentsToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, uint columnDeviceComments)
         {
             //вывод значения поля DeviceComments
-            if (this.Row.GetMember("DEVICECOMMENTS", out object value))
+            if (this.Row.GetMember(Common.Constants.DeviceComments, out object value))
             {
                 if (value != null)
                 {
@@ -1533,9 +1533,9 @@ namespace SCME.dbViewer.ForParameters
                     rowNumOffSet++;
                 }
 
-                if (!string.IsNullOrEmpty(this.DVdT))
+                if (!string.IsNullOrEmpty(this.DUdt))
                 {
-                    value = string.Format("{0}≥{1} {2}", Constants.dVdT, this.DVdT, this.DVdTUnitMeasure);
+                    value = string.Format("{0}≥{1} {2}", Common.Constants.DUdt, this.DUdt, this.DUdtUnitMeasure);
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + rowNumOffSet, column, value);
                     cell.StyleIndex = dataStyleIndex;
 
@@ -1714,12 +1714,12 @@ namespace SCME.dbViewer.ForParameters
             {
                 //считываем множество значений DEV_ID
                 IEnumerable<string> devIDList = null;
-                if (row.GetMember("DEV_ID", out object objDevID))
+                if (row.GetMember(Common.Constants.DevID, out object objDevID))
                     devIDList = objDevID.ToString().Split(new string[] { Common.Constants.cString_AggDelimeter.ToString() }, StringSplitOptions.None);
 
                 //считываем множество значений  ASSEMBLYPROTOCOLID
                 IEnumerable<string> assemblyProtocolIDList = null;
-                if (row.GetMember("ASSEMBLYPROTOCOLID", out object objAssemblyProtocolID))
+                if (row.GetMember(Common.Constants.AssemblyProtocolID, out object objAssemblyProtocolID))
                     assemblyProtocolIDList = objAssemblyProtocolID.ToString().Split(new string[] { Common.Constants.cString_AggDelimeter.ToString() }, StringSplitOptions.None);
 
                 //считываем множество значений SAPID
@@ -1768,16 +1768,16 @@ namespace SCME.dbViewer.ForParameters
             // сообщение об ошибке, найденной в проверяемых данных
 
             //в записи с индексом 0 имеем выбранные пользователем значения параметров из шапки протокола сборки
-            //проверяем, что данные из принятого на вход row соответствуют установленному пользователем значению dVdT
+            //проверяем, что данные из принятого на вход row соответствуют установленному пользователем значению dUdt
             ReportRecord zeroRecord = this[0];
-            string dVdTUserValue = zeroRecord.DVdT;
+            string dUdtUserValue = zeroRecord.DUdt;
 
-            //dVdTUserValue может иметь либо значение null, либо int значение
-            //если dVdTUserValue=null - пользователю всё равно какое значение dVdT в табличных данных - проверка значений dVdT успешно закончена
-            if (dVdTUserValue == null)
+            //dUdtUserValue может иметь либо значение null, либо int значение
+            //если dUdtUserValue=null - пользователю всё равно какое значение dUdt в табличных данных - проверка значений dUdt успешно закончена
+            if (dUdtUserValue == null)
                 return null;
 
-            if (int.TryParse(dVdTUserValue, out int iDVdTUserValue))
+            if (int.TryParse(dUdtUserValue, out int idUdtUserValue))
             {
                 List<string> memberNames = row.GetDynamicMemberNames().ToList();
 
@@ -1788,21 +1788,21 @@ namespace SCME.dbViewer.ForParameters
                 {
                     int startIndex = (conditionsInDataSourceFirstIndex == -1) ? parametersInDataSourceFirstIndex : conditionsInDataSourceFirstIndex;
 
-                    const string dVdTName = "dvdt_voltagerate";
-                    string name = memberNames.FirstOrDefault(n => (memberNames.IndexOf(n) >= startIndex) && (n.IndexOf(SCME.Common.Constants.FromXMLNameSeparator) != -1) && n.EndsWith(dVdTName));
+                    const string dUdtName = "dvdt_voltagerate";
+                    string name = memberNames.FirstOrDefault(n => (memberNames.IndexOf(n) >= startIndex) && (n.IndexOf(SCME.Common.Constants.FromXMLNameSeparator) != -1) && n.EndsWith(dUdtName));
 
                     if (name != null)
                     {
                         if (row.GetMember(name, out object value))
                         {
-                            //запоминаем единицу измерения dVdT
-                            zeroRecord.DVdTUnitMeasure = Dictionaries.ConditionUnitMeasure(dVdTName);
+                            //запоминаем единицу измерения dUdt
+                            zeroRecord.DUdtUnitMeasure = Dictionaries.ConditionUnitMeasure(dUdtName);
 
-                            //в проверяемых данных значение dVdT может начинаться символом V
+                            //в проверяемых данных значение dUdt может начинаться символом V
                             //проверяем это и избавляемся от начального символа V если он присутствует
                             int iValue = Routines.EndingNumberFromValue(value.ToString());
 
-                            if (iValue >= iDVdTUserValue)
+                            if (iValue >= idUdtUserValue)
                                 return null;
                         }
                     }
@@ -1810,7 +1810,7 @@ namespace SCME.dbViewer.ForParameters
             }
 
             //раз мы здесь - значит проверка не пройдена, есть ошибки
-            return string.Format(Properties.Resources.ReportBuildingError, "'dvdt'");
+            return string.Format(Properties.Resources.ReportBuildingError, "'dUdt'");
         }
 
         public void CalculatesForAssemblyReport(DynamicObj row)
@@ -2214,7 +2214,7 @@ namespace SCME.dbViewer.ForParameters
 
                     if (qrrMax != null)
                     {
-                        paramReference = new ParamReference { Name = "QRR", MinValue = null, MaxValue = qrrMax };
+                        paramReference = new ParamReference { Name = Common.Constants.Qrr, MinValue = null, MaxValue = qrrMax };
                         norms.Add(paramReference);
                     }
 

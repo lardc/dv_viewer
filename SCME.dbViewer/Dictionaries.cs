@@ -28,7 +28,7 @@ namespace SCME.dbViewer
                 {"BVT_UdsmUrsm_VD", "UDSM"},
                 {"BVT_UdsmUrsm_VR", "URSM"},
 
-                {"DVDT_VoltageRate", "DVDt"},
+                {"DVDT_VoltageRate", "dU/dt"},
 
                 {"QrrTq_DCFallRate", "dIdt"}
             };
@@ -45,7 +45,7 @@ namespace SCME.dbViewer
                 {"BVT_UdsmUrsm_VD", "UDSM"},
                 {"BVT_UdsmUrsm_VR", "URSM"},
 
-                {"DVDT_VoltageRate", "DVDt"},
+                {"DVDT_VoltageRate", "dU/dt"},
 
                 {"QrrTq_DCFallRate", "dIdt"}
             };

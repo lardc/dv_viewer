@@ -43,8 +43,8 @@ namespace SCME.dbViewer
         private ConcurrentQueue<Action> FQueueManager = new ConcurrentQueue<Action>();
         private CustomControls.ActiveFilters FActiveFilters = null;
 
-        //столбец из this.DgAssemblyProtocols по которому пользователь хочет выполнить либо сортировку, либо фильтрацию данных
-        private DataGridBoundColumn FActiveColumn = null;
+        //столбец из this.DgAssemblyProtocols по которому пользователь хочет выполнить сортировку
+        private string FSortSourceFieldName = null;
 
         //дескриптор окна визуализации ожидания
         //создаётся в SCME.dbViewer.MainWindow
@@ -108,7 +108,7 @@ namespace SCME.dbViewer
             switch (this.ShowDialog() == true)
             {
                 case true:
-                    object objAssemblyProtocolDescr = this.DgAssemblyProtocols.ValueFromSelectedRow("DESCR");
+                    object objAssemblyProtocolDescr = this.DgAssemblyProtocols.ValueFromSelectedRow(Common.Constants.Descr);
                     assemblyProtocolDescr = (objAssemblyProtocolDescr == null) ? -1 : int.TryParse(objAssemblyProtocolDescr.ToString(), out int id) ? id : -1;
 
                     if (assemblyProtocolDescr != -1)
@@ -127,51 +127,51 @@ namespace SCME.dbViewer
             return result;
         }
 
-        private string DataTypeByColumn(DataGridBoundColumn column, out string fieldName)
+        private string DataTypeByColumn(DataGridColumn column, out string soureFieldName)
         {
             //определение типа данных, отображаемых в столбце column
             //судить о типе всех данных по порции данных нельзя - в порции данных может не быть ни одного значения, тип данных не вычислим - поэтому никак не используем данные для вычисления типа данных
             //но нам всегда известно что за данные могут быть в данном столбце, т.к. они всегда грузятся только из базы данных, а типы данных в ней чётко заданы
             string result = null;
-            fieldName = null;
+            soureFieldName = null;
 
-            if ((column != null) && (column.Binding is Binding bind))
+            if (column != null)
             {
-                fieldName = bind.Path.Path;
+                soureFieldName = column.SortMemberPath;
 
-                switch (fieldName)
+                switch (soureFieldName)
                 {
-                    case "ASSEMBLYPROTOCOLID":
-                    case "DESCR":
-                    case "AVERAGECURRENT":
-                    case "DEVICECLASS":
-                    case "DVDT":
-                    case "QRR":
-                    case "OMNITY":
+                    case Common.Constants.AssemblyProtocolID:
+                    case Common.Constants.Descr:
+                    case Common.Constants.AverageCurrent:
+                    case Common.Constants.DeviceClass:
+                    case Common.Constants.DUdt:
+                    case Common.Constants.Qrr:
+                    case Common.Constants.Omnity:
                         result = typeof(int).FullName;
                         break;
 
-                    case "TS":
+                    case Common.Constants.Ts:
                         result = "System.DateOnly";
                         break;
 
-                    case "USR":
-                    case "ASSEMBLYJOB":
-                    case "DEVICETYPERU":
-                    case "DEVICETYPEEN":
-                    case "CONSTRUCTIVE":
-                    case "TQ":
-                    case "CLIMATIC":
+                    case Common.Constants.Usr:
+                    case Common.Constants.AssemblyJob:
+                    case Common.Constants.DeviceTypeRU:
+                    case Common.Constants.DeviceTypeEN:
+                    case Common.Constants.Constructive:
+                    case Common.Constants.Tq:
+                    case Common.Constants.Climatic:
                         result = typeof(string).FullName;
                         break;
 
-                    case "DEVICEMODEVIEW":
-                    case "EXPORT":
+                    case Common.Constants.DeviceModeView:
+                    case Common.Constants.Export:
                         result = typeof(bool).FullName;
                         break;
 
-                    case "TRR":
-                    case "TGT":
+                    case Common.Constants.Trr:
+                    case Common.Constants.Tgt:
                         result = typeof(double).FullName;
                         break;
 
@@ -199,13 +199,13 @@ namespace SCME.dbViewer
             this.RefreshShowingData();
         }
 
-        private void SetFilter(Point position, DataGridBoundColumn column, string tittlefieldName)
+        private void SetFilter(Point position, System.Windows.Controls.Primitives.DataGridColumnHeader columnHeader)
         {
             if (this.DgAssemblyProtocols.ItemsSource != null)
             {
-                string filterType = this.DataTypeByColumn(column, out string bindPath);
+                string filterType = this.DataTypeByColumn(columnHeader.Column, out string sourceFieldName);
 
-                CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, bindPath) { Type = filterType, TittlefieldName = tittlefieldName, Comparison = "=", Value = this.DgAssemblyProtocols.ValueFromSelectedRow(bindPath) };
+                CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, sourceFieldName) { Type = filterType, TittlefieldName = columnHeader.Content.ToString(), Comparison = "=", Value = this.DgAssemblyProtocols.ValueFromSelectedRow(sourceFieldName) };
                 this.FActiveFilters.Add(filter);
 
                 FiltersInput fmFiltersInput = new FiltersInput(this.FActiveFilters, this);
@@ -234,7 +234,6 @@ namespace SCME.dbViewer
             //данная реализация будет вызвана сразу после формирования данных кеша перед вызовом this.AfterBuildingDataInCacheRoutines
             //смотрим какие сортированные данные нам требуется получать: простые реквизиты, условия или параметры
             //возвращает сколько записей кеша удалил вызов данной реализации
-            string columnName = null;
 
             int deletedSummCount = 0;
 
@@ -282,20 +281,15 @@ namespace SCME.dbViewer
             }
 
             //требуется сортировка данных
-            if (this.FActiveColumn != null)
+            if (!string.IsNullOrEmpty(this.FSortSourceFieldName))
             {
-                if (this.FActiveColumn.Binding is Binding bind)
-                {
-                    columnName = bind.Path.Path;
+                //вычисляем направление сортировки
+                bool direction = (this.DgAssemblyProtocols.LastSortedDirection == ListSortDirection.Ascending) ? false : true;
 
-                    //вычисляем направление сортировки
-                    bool direction = (this.DgAssemblyProtocols.LastSortedDirection == ListSortDirection.Ascending) ? false : true;
+                //устанавливаем значение поля сортировки в кеше
+                this.CacheSetOnDuty(this.FSortSourceFieldName, direction);
 
-                    //устанавливаем значение поля сортировки в кеше
-                    this.CacheSetOnDuty(columnName, direction);
-
-                    //сортировка данных выполнена
-                }
+                //сортировка данных выполнена
             }
 
             return deletedSummCount;
@@ -304,7 +298,6 @@ namespace SCME.dbViewer
         private void AfterBuildingDataInCacheRoutines(int cacheSize)
         {
             //показываем количество отображаемых записей
-
 
             //прокручиваем данные до первой записи не NULL значением в поле сортировки
             this.ScrollToFirstNotNullSortingValue();
@@ -396,7 +389,7 @@ namespace SCME.dbViewer
                 SCME.Common.Routines.ShowProcessWaitVisualizerSortingFiltering(this, this.ProcessWaitVisualizerHWnd);
 
                 //запоминаем столбец по которому пользователь хочет выполнить сортировку отображаемого списка и режим изменения данных кеша
-                this.FActiveColumn = (e.Column is DataGridBoundColumn column) ? column : null;
+                this.FSortSourceFieldName = e.Column.SortMemberPath;
 
                 //обновляем отображаемые данные чтобы увидеть результаты сортировки
                 this.RefreshShowingData();
@@ -415,7 +408,7 @@ namespace SCME.dbViewer
         {
             //возвращает текущий выбранный пользователем идентификатор протокола сборки
             //считываем идентификатор выбранного пользователем протокола сборки
-            object objAssemblyProtocolID = this.DgAssemblyProtocols.ValueFromSelectedRow("ASSEMBLYPROTOCOLID");
+            object objAssemblyProtocolID = this.DgAssemblyProtocols.ValueFromSelectedRow(Common.Constants.AssemblyProtocolID);
 
             return (objAssemblyProtocolID is int assemblyProtocolID) ? (int?)assemblyProtocolID : null;
         }
@@ -424,7 +417,7 @@ namespace SCME.dbViewer
         {
             //возвращает текущий выбранный пользователем номер протокола сборки
             //считываем номер выбранного пользователем протокола сборки
-            object objAssemblyProtocolDescr = this.DgAssemblyProtocols.ValueFromSelectedRow("DESCR");
+            object objAssemblyProtocolDescr = this.DgAssemblyProtocols.ValueFromSelectedRow(Common.Constants.Descr);
 
             return int.TryParse(objAssemblyProtocolDescr.ToString(), out int assemblyProtocolDescr) ? (int?)assemblyProtocolDescr : null;
         }
@@ -479,7 +472,7 @@ namespace SCME.dbViewer
                     int assemblyProtocolID = (int)selectedAssemblyProtocolID;
 
                     //считываем данные протокола сборки                    
-                    DbRoutines.LoadAssemblyProtocol(assemblyProtocolID, out bool? deviceModeView, out string assemblyJob, out bool? export, out int? deviceTypeID, out int? averageCurrent, out string modification, out string constructive, out int? deviceClass, out int? dVdT, out double? trr, out string tq, out double? tgt, out int? qrr, out string climatic, out int? omnity);
+                    DbRoutines.LoadAssemblyProtocol(assemblyProtocolID, out bool? deviceModeView, out string assemblyJob, out bool? export, out int? deviceTypeID, out int? averageCurrent, out string modification, out string constructive, out int? deviceClass, out int? dUdt, out double? trr, out string tq, out double? tgt, out int? qrr, out string climatic, out int? omnity);
 
                     int iDeviceTypeID = (deviceTypeID == null) ? -1 : (int)deviceTypeID;
 
@@ -490,12 +483,12 @@ namespace SCME.dbViewer
                     }
 
                     Routines.GroupDescr tqGroup = (tq == null) ? null : Routines.TqGroups[tq];
-                    Routines.GroupDescr dVdTGroup = (dVdT == null) ? null : Routines.DUDtGroups[(int)dVdT];
+                    Routines.GroupDescr dUdtGroup = (dUdt == null) ? null : Routines.DUDtGroups[(int)dUdt];
                     Routines.GroupDescr trrGroup = (trr == null) ? null : Routines.TrrGroups[(double)trr];
                     Routines.GroupDescr tgtGroup = (tgt == null) ? null : Routines.TgtOnGroups[(double)tgt];
 
                     string tqValue;
-                    string dVdTValue;
+                    string dUdtValue;
                     string trrValue;
                     string tgtValue;
 
@@ -503,14 +496,14 @@ namespace SCME.dbViewer
                     {
                         case true:
                             tqValue = tqGroup?.Num;
-                            dVdTValue = dVdTGroup?.Num;
+                            dUdtValue = dUdtGroup?.Num;
                             trrValue = trrGroup?.Num;
                             tgtValue = tgtGroup?.Num;
                             break;
 
                         default:
                             tqValue = tqGroup?.Descr;
-                            dVdTValue = dVdTGroup?.Descr;
+                            dUdtValue = dUdtGroup?.Descr;
                             trrValue = trrGroup?.Descr;
                             tgtValue = tgtGroup?.Descr;
                             break;
@@ -519,17 +512,17 @@ namespace SCME.dbViewer
                     bool sExport = (export == null) ? false : (export == true) ? true : false;
                     string sItav = averageCurrent?.ToString();
                     string sDeviceClass = (deviceClass == null) ? "0" : deviceClass.ToString();
-                    string deviceDescr = Routines.CalcDeviceDescr(deviceTypeRU, deviceTypeEN, sExport, constructive, dVdTValue, tqValue, trrValue, tgtValue, modification, climatic, sItav, sDeviceClass);
+                    string deviceDescr = Routines.CalcDeviceDescr(deviceTypeRU, deviceTypeEN, sExport, constructive, dUdtValue, tqValue, trrValue, tgtValue, modification, climatic, sItav, sDeviceClass);
 
                     int itav = (averageCurrent == null) ? -1 : (int)averageCurrent;
                     string sOmnity = omnity?.ToString();
 
                     string sTrr = trr?.ToString();
                     string sQrr = qrr?.ToString();
-                    string sDVdT = dVdT?.ToString();
+                    string sdUdt = dUdt?.ToString();
                     string sTgt = tgt?.ToString();
 
-                    AssemblyProtocolReport.Build(assemblyProtocolID, null, -1, assemblyJob, deviceDescr, deviceTypeRU, sOmnity, tqGroup?.TrueValue, sTrr, sQrr, sDVdT, sTgt, itav, iDeviceTypeID, constructive, modification, sDeviceClass);
+                    AssemblyProtocolReport.Build(assemblyProtocolID, null, -1, assemblyJob, deviceDescr, deviceTypeRU, sOmnity, tqGroup?.TrueValue, sTrr, sQrr, sdUdt, sTgt, itav, iDeviceTypeID, constructive, modification, sDeviceClass);
                 }
                 finally
                 {

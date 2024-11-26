@@ -1603,7 +1603,7 @@ namespace SCME.dbViewer.CustomControl
                             xmlDoc.LoadXml(sXML);
                             XmlElement documentElement = xmlDoc.DocumentElement;
 
-                            XMLValues subject = (documentElement.Name == "CONDITIONS") ? XMLValues.Conditions : (documentElement.Name == "PARAMETERS") ? XMLValues.Parameters : (documentElement.Name == "DEVICECOMMENTS") ? XMLValues.DeviceComments : XMLValues.UnAssigned;
+                            XMLValues subject = (documentElement.Name == "CONDITIONS") ? XMLValues.Conditions : (documentElement.Name == "PARAMETERS") ? XMLValues.Parameters : (documentElement.Name == Common.Constants.DeviceComments) ? XMLValues.DeviceComments : XMLValues.UnAssigned;
 
                             //считываем при какой температуре проводятся измерения. эта информация есть только в описании условий измерения                        
                             if (subject == XMLValues.Conditions)
@@ -1810,9 +1810,9 @@ namespace SCME.dbViewer.CustomControl
 
             switch (column.SortMemberPath)
             {
-                case "CODE":
-                case "GROUP_NAME":
-                case "ITEM":
+                case Common.Constants.Code:
+                case Common.Constants.GroupName:
+                case Common.Constants.Item:
                     {
                         ListSortDirection sortDirection = (column.SortDirection == ListSortDirection.Ascending) ? ListSortDirection.Descending : ListSortDirection.Ascending;
 

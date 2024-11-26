@@ -19,7 +19,7 @@ namespace SCME.dbViewer
     {
         int FProfID = -1;
         DataTable FDataSource = new DataTable();
-        const string AssemblyProtocolID = "ASSEMBLYPROTOCOLID";
+        //const string AssemblyProtocolID = "ASSEMBLYPROTOCOLID";
 
         public DataView DataSource
         {
@@ -37,8 +37,8 @@ namespace SCME.dbViewer
             InitializeComponent();
 
             this.FProfID = profID;
-            this.DataSource.Table.Columns.Add(AssemblyProtocolID);
-            this.DataSource.Table.Columns.Add("DESCR");
+            this.DataSource.Table.Columns.Add(Common.Constants.AssemblyProtocolID);
+            this.DataSource.Table.Columns.Add(Common.Constants.Descr);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -176,7 +176,7 @@ namespace SCME.dbViewer
                     {
                         foreach (DataRow row in this.FDataSource.Rows)
                         {
-                            object objAssemblyProtocolID = row[AssemblyProtocolID];
+                            object objAssemblyProtocolID = row[Common.Constants.AssemblyProtocolID];
 
                             if (objAssemblyProtocolID != DBNull.Value)
                             {
@@ -282,7 +282,7 @@ namespace SCME.dbViewer
             foreach (DataRow row in this.FDataSource.Rows)
             {
                 //извлекаем из row идентификатор протокола сборки
-                int columnIndex = row.Table.Columns.IndexOf(AssemblyProtocolID);
+                int columnIndex = row.Table.Columns.IndexOf(Common.Constants.AssemblyProtocolID);
 
                 if (columnIndex != -1)
                 {
@@ -345,7 +345,7 @@ namespace SCME.dbViewer
                             {
                                 foreach (DataRow row in this.FDataSource.Rows)
                                 {
-                                    if (int.TryParse(row[AssemblyProtocolID].ToString(), out int assemblyProtocolID))
+                                    if (int.TryParse(row[Common.Constants.AssemblyProtocolID].ToString(), out int assemblyProtocolID))
                                         DbRoutines.ExchangeManualInputAssemblyProtocolParam(assemblyProtocolID, oldManualInputParamID, newManualInputParamID);
                                 }
 
@@ -375,7 +375,7 @@ namespace SCME.dbViewer
                 int currentRowIndex = dgAssemblyProtocolParam.Items.IndexOf(dgAssemblyProtocolParam.CurrentItem);
                 DataRow row = this.FDataSource.Rows[currentRowIndex];
 
-                if (int.TryParse(row[AssemblyProtocolID].ToString(), out int assemblyProtocolID))
+                if (int.TryParse(row[Common.Constants.AssemblyProtocolID].ToString(), out int assemblyProtocolID))
                 {
                     //удаляем вручную созданные места хранения всех параметров протокола сборки assemblyProtocolID
                     DbRoutines.DeleteFromManualInputAssemblyProtocolParamByAssemblyProtocolID(assemblyProtocolID);

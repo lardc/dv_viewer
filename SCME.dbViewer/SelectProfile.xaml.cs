@@ -168,7 +168,7 @@ namespace SCME.dbViewer
                 int columnIndex = currentItem.Row.Table.Columns.IndexOf("PROF_ID");
                 this.FSelectedProfileID = Convert.ToInt32(itemArray[columnIndex]);
 
-                columnIndex = currentItem.Row.Table.Columns.IndexOf("PROF_NAME");
+                columnIndex = currentItem.Row.Table.Columns.IndexOf(Common.Constants.ProfileName);
                 this.FSelectedProfile = itemArray[columnIndex].ToString();
 
                 columnIndex = currentItem.Row.Table.Columns.IndexOf("PROF_GUID");

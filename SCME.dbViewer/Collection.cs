@@ -20,7 +20,7 @@ namespace SCME.dbViewer
         /*
         private void CreateColumns()
         {
-            this.CreateColumn(((MainWindow)System.Windows.Application.Current.MainWindow).dgDevices, "CODE", "CODE");
+            this.CreateColumn(((MainWindow)System.Windows.Application.Current.MainWindow).dgDevices, Common.Constants.Code, Common.Constants.Code);
         }
         */
         /*

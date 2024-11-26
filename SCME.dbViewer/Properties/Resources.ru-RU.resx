@@ -165,8 +165,8 @@
   <data name="Reason" xml:space="preserve">
     <value>Причина</value>
   </data>
-  <data name="ShownRecords" xml:space="preserve">
-    <value>Показано записей: </value>
+  <data name="Records" xml:space="preserve">
+    <value>Записей:</value>
   </data>
   <data name="Report" xml:space="preserve">
     <value>Отчёт</value>
@@ -488,8 +488,8 @@
   <data name="SelectedToInitState" xml:space="preserve">
     <value>Перевести в состояние 'НЗП'</value>
   </data>
-  <data name="dVdT" xml:space="preserve">
-    <value>dVdT</value>
+  <data name="dUdt" xml:space="preserve">
+    <value>dU/dt</value>
   </data>
   <data name="Climatic" xml:space="preserve">
     <value>Климат</value>
@@ -739,5 +739,41 @@
   </data>
   <data name="DataLoadingFailed" xml:space="preserve">
     <value>Загрузка данных не выполнена</value>
+  </data>
+  <data name="Cut" xml:space="preserve">
+    <value>Вырезать</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Вставить</value>
+  </data>
+  <data name="dUdtMin" xml:space="preserve">
+    <value>dU/dtMin</value>
+  </data>
+  <data name="IrrmMax" xml:space="preserve">
+    <value>IrrmMax</value>
+  </data>
+  <data name="RisolMin" xml:space="preserve">
+    <value>RisolMin</value>
+  </data>
+  <data name="TgtMax" xml:space="preserve">
+    <value>TgtMax</value>
+  </data>
+  <data name="TqMin" xml:space="preserve">
+    <value>TqMin</value>
+  </data>
+  <data name="TrrMin" xml:space="preserve">
+    <value>TrrMin</value>
+  </data>
+  <data name="UbrMin" xml:space="preserve">
+    <value>UbrMin</value>
+  </data>
+  <data name="UdsmMin" xml:space="preserve">
+    <value>UdsmMin</value>
+  </data>
+  <data name="UisolMin" xml:space="preserve">
+    <value>UisolMin</value>
+  </data>
+  <data name="UrsmMin" xml:space="preserve">
+    <value>UrsmMin</value>
   </data>
 </root>

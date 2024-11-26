@@ -18,9 +18,12 @@
 
     <Window.Resources>
         <common:IntToVisibilityConverter x:Key="I2V"/>
+        <common:AssemblyProtocolModeToColumnSpanConverter x:Key="APM2CS"/>
+        <common:AssemblyProtocolModeToGridMarginConverter x:Key="APM2GM"/>
         <common:BoolToVisibilityConverter x:Key="B2V"/>
         <common:BitValueByNumberConverter x:Key="bitValueByNumberConverter"/>
         <common:InverseBoolToVisibilityConverter x:Key="InvB2V"/>
+        <local:PermissionBitToEnableConverter x:Key="permissionBitToEnableConverter"/>
         <local:ChoiceEnabledMultiConverter x:Key="choiceEnabledMultiConverter"/>
         <local:ToolTipMultiConverter x:Key="toolTipMultiConverter"/>
         <local:ValueToBrushMultiConverter x:Key="valueToBrushMultiConverter"/>
@@ -125,6 +128,13 @@
             <MenuItem Style="{StaticResource MenuItemStyle}" Name="ctxmSelectedToInitState" Header="{x:Static res:Resources.SelectedToInitState}" Click="ContextMenuSelectedToInitState_Click"/>
         </ContextMenu>
 
+        <ContextMenu x:Key="DeviceCommentsTextBoxContextMenu">
+            <MenuItem Header="{x:Static res:Resources.Cut}" Command="Cut"/>
+            <MenuItem Header="{x:Static res:Resources.Copy}" Command="Copy"/>
+            <MenuItem Header="{x:Static res:Resources.Paste}" Command="Paste"/>
+            <MenuItem Header="{x:Static res:Resources.Edit}" Click="ContextMenuDeviceCommentsEdit_Click"/>
+        </ContextMenu>
+
         <!--
         <Style TargetType="{x:Type DataGridRow}" x:Key="DataGridRowStyle">
             <Style.Triggers>
@@ -204,6 +214,28 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style TargetType="{x:Type DataGridCell}" x:Key="DataGridCellEditByTextBoxStyle">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <!--убираем фокус чтобы DataGridCell не забирал себе фокус при тыке мышкой по TextBox находящемуся внутри DataGridCell-->
+                    <Setter Property="Focusable" Value="False"/>
+                </Trigger>
+            </Style.Triggers>
+
+            <EventSetter Event="PreviewKeyDown" Handler="DataGridCellEditByTextBox_PreviewKeyDown"/>
+        </Style>
+
+        <Style TargetType="{x:Type TextBox}" x:Key="DeviceCommentsTextBoxStyle">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="MaxLength" Value="4000"/>
+            <Setter Property="ContextMenu" Value="{StaticResource DeviceCommentsTextBoxContextMenu}"/>
+            <Setter Property="Text" Value="{Binding {x:Static common:Constants.DeviceComments}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <Setter Property="IsReadOnly" Value="{Binding Source={x:Reference DeviceCommentsDataGridColumnIsReadOnlyProxy}, Path=Tag}"/>
+
+            <EventSetter Event="TextChanged" Handler="TextBoxDeviceCommentsTextChanged"/>
+            <EventSetter Event="LostFocus" Handler="TextBoxDeviceCommentsLostFocus"/>
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="grdParent">
@@ -214,12 +246,13 @@
 
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="0.01*"/>
+                <ColumnDefinition Width="0.3*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Menu Grid.Column="0" Grid.ColumnSpan="2" Background="Transparent">
+            <Menu Grid.Column="0" Background="Transparent">
                 <MenuItem Header="{x:Static res:Resources.Session}">
                     <MenuItem Header="{x:Static res:Resources.Begin}" Click="MnuBeginSessionClick"/>
                     <MenuItem Header="{x:Static res:Resources.Close}" Click="MnuCloseSessionClick"/>
@@ -256,13 +289,13 @@
                 <MenuItem Name="MnuRefresh" Header="{x:Static res:Resources.Refresh}" Click="MnuRefreshClick"/>
             </Menu>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Label FontSize="16" Content="{x:Static res:Resources.ShownRecords}"/>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                <Label FontSize="16" Content="{x:Static res:Resources.Records}"/>
                 <Label x:Name="lbRecordCount" FontSize="16" FontWeight="Bold"/>
                 <Label x:Name="lbBottomRecordCount" FontSize="16" FontWeight="Bold"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Left" Visibility="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource B2V}, UpdateSourceTrigger=PropertyChanged}">
+            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Stretch" Visibility="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource B2V}, UpdateSourceTrigger=PropertyChanged}">
                 <CheckBox x:Name="cbDeviceModeView" Click="CbDeviceModeView_Click">
                     <CheckBox.LayoutTransform>
                         <ScaleTransform ScaleX="1.7" ScaleY="1.7"/>
@@ -272,161 +305,199 @@
                 <Label x:Name="lbDevice" FontSize="16"/>
             </StackPanel>
         </Grid>
-
-        <Grid Grid.Row="0" Visibility="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource B2V}, UpdateSourceTrigger=PropertyChanged}">
+        
+        <Grid Grid.Row="0" Margin="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource APM2GM}, UpdateSourceTrigger=PropertyChanged}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="60"/>
-                <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.8*"/>
-                <ColumnDefinition Width="0.6*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="0.7*"/>
-                <ColumnDefinition Width="0.6*"/>
-                <ColumnDefinition Width="0.9*"/>
-                <ColumnDefinition Width="0.65*"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="2.4*"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="0.8*"/>
-                <ColumnDefinition Width="0.8*"/>
-                <ColumnDefinition Width="0.7*"/>
+                <ColumnDefinition Width="0.365*"/>
+                <ColumnDefinition Width="0.538*"/>
+                <ColumnDefinition Width="0.097*"/>
             </Grid.ColumnDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="0" Content="{x:Static res:Resources.AssemblyJob}" FontSize="12" HorizontalAlignment="Center" Margin="0,0,5,0"/>
-            <TextBox x:Name="tbAssemblyJob" Grid.Row="2" Grid.Column="0" FontSize="16" Margin="0,0,5,0" MaxLength="32"/>
+            <Grid Grid.Row="0" Grid.Column="0" Visibility="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource B2V}, UpdateSourceTrigger=PropertyChanged}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="1" Content="{x:Static res:Resources.Export}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <CheckBox x:Name="cbExport" Grid.Row="2" Grid.Column="1" FontSize="16" HorizontalAlignment="Center" Margin="0,5" Click="CbExport_Click">
-                <CheckBox.LayoutTransform>
-                    <ScaleTransform ScaleX="1.7" ScaleY="1.7"/>
-                </CheckBox.LayoutTransform>
-            </CheckBox>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.8*"/>
+                    <ColumnDefinition Width="0.7*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0.7*"/>
+                    <ColumnDefinition Width="0.6*"/>
+                    <ColumnDefinition Width="0.9*"/>
+                    <ColumnDefinition Width="0.65*"/>
+                </Grid.ColumnDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="2" Content="{x:Static res:Resources.DeviceType}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbDeviceType" Grid.Row="2" Grid.Column="2" ItemsSource="{Binding Source={StaticResource DeviceTypeList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding [1]}" Width="50"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding [2]}" Width="50"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="0" Content="{x:Static res:Resources.AssemblyJob}" FontSize="12" HorizontalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="tbAssemblyJob" Grid.Row="1" Grid.Column="0" FontSize="16" Margin="0,0,5,0" MaxLength="32"/>
 
-            <Label Grid.Row="1" Grid.Column="3" Content="{x:Static res:Resources.Constructive}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <TextBox x:Name="tbConstructive" Grid.Row="2" Grid.Column="3" FontSize="16" Margin="5,0" MaxLength="3" TextChanged="TbTextChanged" PreviewTextInput="TbConstructive_PreviewTextInput" DataObject.Pasting="TbConstructivePaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+                <Label Grid.Row="0" Grid.Column="1" Content="{x:Static res:Resources.Export}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <CheckBox x:Name="cbExport" Grid.Row="1" Grid.Column="1" FontSize="16" HorizontalAlignment="Center" Margin="5,0,5,0" Click="CbExport_Click">
+                    <CheckBox.LayoutTransform>
+                        <ScaleTransform ScaleX="1.7" ScaleY="1.7"/>
+                    </CheckBox.LayoutTransform>
+                </CheckBox>
 
-            <Label Grid.Row="1" Grid.Column="4" Content="{x:Static res:Resources.AverageCurrent}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <TextBox x:Name="tbAverageCurrent" Grid.Row="2" Grid.Column="4" FontSize="16" Margin="5,0" MaxLength="5" TextChanged="TbTextChanged" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+                <Label Grid.Row="0" Grid.Column="2" Content="{x:Static res:Resources.DeviceType}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbDeviceType" Grid.Row="1" Grid.Column="2" ItemsSource="{Binding Source={StaticResource DeviceTypeList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding [1]}" Width="50"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding [2]}" Width="50"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
-            <Label Grid.Row="1" Grid.Column="5" Content="{x:Static res:Resources.Modification}" Visibility="{Binding ElementName=cmbModification, Path=Visibility}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbModification" Grid.Row="2" Grid.Column="5" ItemsSource="{Binding Source={StaticResource ModificationList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.Visibility>
-                    <MultiBinding Converter="{StaticResource deviceTypeAssemblyProtocolModeToVisibilityMultiConverter}">
-                        <Binding ElementName="cmbDeviceType" Path="SelectedItem"/>
-                        <Binding ElementName="MainForm" Path="AssemblyProtocolMode" UpdateSourceTrigger="PropertyChanged"/>
-                    </MultiBinding>
-                </ComboBox.Visibility>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="3" Content="{x:Static res:Resources.Constructive}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <TextBox x:Name="tbConstructive" Grid.Row="1" Grid.Column="3" FontSize="16" Margin="5,0,5,0" MaxLength="3" TextChanged="TbTextChanged" PreviewTextInput="TbConstructive_PreviewTextInput" DataObject.Pasting="TbConstructivePaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
 
-            <Label Grid.Row="1" Grid.Column="6" Content="{x:Static res:Resources.DeviceClass}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <TextBox x:Name="tbDeviceClass" Grid.Row="2" Grid.Column="6" FontSize="16" Margin="5,0" MaxLength="2" TextChanged="TbTextChanged" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+                <Label Grid.Row="0" Grid.Column="4" Content="{x:Static res:Resources.AverageCurrent}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <TextBox x:Name="tbAverageCurrent" Grid.Row="1" Grid.Column="4" FontSize="16" Margin="5,0,5,0" MaxLength="5" TextChanged="TbTextChanged" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
 
-            <Label Grid.Row="1" Grid.Column="7" Content="{x:Static res:Resources.dVdT}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbDUDt" Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Source={StaticResource DUDtList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="35"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="25"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="20"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="5" Content="{x:Static res:Resources.Modification}" Visibility="{Binding ElementName=cmbModification, Path=Visibility}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbModification" Grid.Row="1" Grid.Column="5" ItemsSource="{Binding Source={StaticResource ModificationList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
+                    <ComboBox.Visibility>
+                        <MultiBinding Converter="{StaticResource deviceTypeAssemblyProtocolModeToVisibilityMultiConverter}">
+                            <Binding ElementName="cmbDeviceType" Path="SelectedItem"/>
+                            <Binding ElementName="MainForm" Path="AssemblyProtocolMode" UpdateSourceTrigger="PropertyChanged"/>
+                        </MultiBinding>
+                    </ComboBox.Visibility>
+                </ComboBox>
 
-            <Label Grid.Row="1" Grid.Column="8" Content="{x:Static res:Resources.trr}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbTrr" Grid.Row="2" Grid.Column="8" ItemsSource="{Binding Source={StaticResource TrrList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="30"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="30"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="25"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="6" Content="{x:Static res:Resources.DeviceClass}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <TextBox x:Name="tbDeviceClass" Grid.Row="1" Grid.Column="6" FontSize="16" Margin="5,0,5,0" MaxLength="2" TextChanged="TbTextChanged" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+            </Grid>
 
-            <Label Grid.Row="1" Grid.Column="9" Content="{x:Static res:Resources.tq}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbTq" Grid.Row="2" Grid.Column="9" ItemsSource="{Binding Source={StaticResource TqList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="80"/>
-                            <TextBlock Margin="25,0,0,0" Text="{Binding Group}" Width="25"/>
-                            <TextBlock Margin="25,0,0,0" Text="{Binding Num}" Width="20"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+            <!-- в режиме просмотра данных ширина данного Grid должна занимать столбцы 1 и 2 вышестоящего Grid -->
+            <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource APM2CS}, UpdateSourceTrigger=PropertyChanged}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="10" Content="{x:Static res:Resources.tgt}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbTgt" Grid.Row="2" Grid.Column="10" ItemsSource="{Binding Source={StaticResource TgtList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="30"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="30"/>
-                            <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="20"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2.4*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="0.8*"/>
+                </Grid.ColumnDefinitions>
 
-            <Label Grid.Row="1" Grid.Column="11" Content="{x:Static res:Resources.Qrr}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbQrr" Grid.Row="2" Grid.Column="11" ItemsSource="{Binding Source={StaticResource QrrList}}" FontSize="16" Margin="5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="35"/>
-                            <TextBlock Margin="25,0,0,0" Text="{Binding DeviceTypeRu}" Width="35"/>
-                            <TextBlock Margin="25,0,0,0" Text="{Binding Constructive}" Width="25"/>
-                            <TextBlock Margin="25,0,0,0" Text="{Binding Itav}" Width="35"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="0" Content="{x:Static res:Resources.dUdt}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbDUDt" Grid.Row="1" Grid.Column="0" ItemsSource="{Binding Source={StaticResource DUDtList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler" DropDownClosed="CmbDropDownClosedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="35"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="25"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="20"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
-            <Label Grid.Row="1" Grid.Column="12" Content="{x:Static res:Resources.Climatic}" FontSize="12" HorizontalAlignment="Center" Margin="5,0"/>
-            <ComboBox x:Name="cmbClimatic" Grid.Row="2" Grid.Column="12" IsEditable="False" HorizontalContentAlignment="Center" FontSize="16" Margin="5,0" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
-                <ComboBoxItem Content="N"/>
-                <ComboBoxItem Content="Т2"/>
-                <ComboBoxItem Content="У2"/>
-                <ComboBoxItem Content="УХЛ2"/>
-            </ComboBox>
+                <Label Grid.Row="0" Grid.Column="1" Content="{x:Static res:Resources.trr}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbTrr" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TrrList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler" DropDownClosed="CmbDropDownClosedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="30"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="30"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="25"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
-            <Label Grid.Row="1" Grid.Column="13" Content="{x:Static res:Resources.Omnity}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,0,0"/>
-            <TextBox x:Name="tbOmnity" Grid.Row="2" Grid.Column="13" FontSize="16" MaxLength="3" Margin="5,0,0,0" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+                <Label Grid.Row="0" Grid.Column="2" Content="{x:Static res:Resources.tq}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbTq" Grid.Row="1" Grid.Column="2" ItemsSource="{Binding Source={StaticResource TqList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler" DropDownClosed="CmbDropDownClosedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="80"/>
+                                <TextBlock Margin="25,0,0,0" Text="{Binding Group}" Width="25"/>
+                                <TextBlock Margin="25,0,0,0" Text="{Binding Num}" Width="20"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Label Grid.Row="0" Grid.Column="3" Content="{x:Static res:Resources.tgt}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbTgt" Grid.Row="1" Grid.Column="3" ItemsSource="{Binding Source={StaticResource TgtList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler" DropDownClosed="CmbDropDownClosedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="30"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Group}" Width="30"/>
+                                <TextBlock Margin="30,0,0,0" Text="{Binding Num}" Width="20"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Label Grid.Row="0" Grid.Column="4" Content="{x:Static res:Resources.Qrr}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbQrr" Grid.Row="1" Grid.Column="4" ItemsSource="{Binding Source={StaticResource QrrList}}" FontSize="16" Margin="5,0,5,0" IsEditable="False" HorizontalContentAlignment="Left" MaxDropDownHeight="Auto" PreviewKeyUp="CmbPreviewKeyUp" DropDownClosed="CmbDropDownClosedEventHandler">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Margin="2,0,0,0" Text="{Binding Value}" Width="35"/>
+                                <TextBlock Margin="25,0,0,0" Text="{Binding DeviceTypeRu}" Width="35"/>
+                                <TextBlock Margin="25,0,0,0" Text="{Binding Constructive}" Width="25"/>
+                                <TextBlock Margin="25,0,0,0" Text="{Binding Itav}" Width="35"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+
+            <Grid Grid.Row="0" Grid.Column="2" Visibility="{Binding ElementName=MainForm, Path=AssemblyProtocolMode, Converter={StaticResource B2V}, UpdateSourceTrigger=PropertyChanged}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.8*"/>
+                    <ColumnDefinition Width="0.7*"/>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="{x:Static res:Resources.Climatic}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,5,0"/>
+                <ComboBox x:Name="cmbClimatic" Grid.Row="1" Grid.Column="0" IsEditable="False" HorizontalContentAlignment="Center" FontSize="16" Margin="5,0,5,0" PreviewKeyUp="CmbPreviewKeyUp" SelectionChanged="CmbSelectionChangedEventHandler">
+                    <ComboBoxItem Content="N"/>
+                    <ComboBoxItem Content="Т2"/>
+                    <ComboBoxItem Content="У2"/>
+                    <ComboBoxItem Content="УХЛ2"/>
+                </ComboBox>
+
+                <Label Grid.Row="0" Grid.Column="1" Content="{x:Static res:Resources.Omnity}" FontSize="12" HorizontalAlignment="Center" Margin="5,0,0,0"/>
+                <TextBox x:Name="tbOmnity" Grid.Row="1" Grid.Column="1" FontSize="16" MaxLength="3" Margin="5,0,0,0" PreviewTextInput="TbOnlyNumeric_PreviewTextInput" DataObject.Pasting="TbOnlyNumericPaste" PreviewKeyDown="TbDisableSpace_PreviewKeyDown"/>
+            </Grid>
         </Grid>
 
         <!-- костыли для обхода ограничений Microsoft, которые она сделала для DataGridColumn: DataGridColumn is not actually part of the VisualTree
              без этих костылей с уровня DataGridColumn нельзя получить доступ к полям формы - механизм Binding не работает -->
 
         <!-- Proxy для управление видимостью поля DEVICECOMMENTS -->
-        <FrameworkElement x:Name="DeviceCommentsDataGridColumnProxy" Visibility="Collapsed">
+        <FrameworkElement x:Name="DeviceCommentsDataGridColumnVisibilityProxy" Visibility="Collapsed">
             <FrameworkElement.Tag>
                 <MultiBinding Converter="{StaticResource dataGridColumnVisibilityMultiConverter}">
                     <Binding ElementName="MainForm" Path="AssemblyProtocolMode" UpdateSourceTrigger="PropertyChanged"/>
                     <Binding ElementName="MainForm" Path="PermissionsLo" UpdateSourceTrigger="PropertyChanged"/>
-                    <Binding Source="DEVICECOMMENTS"/>
+                    <Binding Source="{x:Static common:Constants.DeviceComments}"/>
                 </MultiBinding>
+            </FrameworkElement.Tag>
+        </FrameworkElement>
+
+        <FrameworkElement x:Name="DeviceCommentsDataGridColumnIsReadOnlyProxy" Visibility="Collapsed">
+            <FrameworkElement.Tag>
+                <Binding ElementName="MainForm" Path="PermissionsLo" Converter="{StaticResource permissionBitToEnableConverter}" ConverterParameter="{x:Static common:Constants.DeviceComments}" UpdateSourceTrigger="PropertyChanged"/>
             </FrameworkElement.Tag>
         </FrameworkElement>
 
@@ -436,7 +507,7 @@
                 <MultiBinding Converter="{StaticResource dataGridColumnVisibilityMultiConverter}">
                     <Binding ElementName="MainForm" Path="AssemblyProtocolMode" UpdateSourceTrigger="PropertyChanged"/>
                     <Binding ElementName="MainForm" Path="PermissionsLo" UpdateSourceTrigger="PropertyChanged"/>
-                    <Binding Source="REASON"/>
+                    <Binding Source="{x:Static common:Constants.Reason}"/>
                 </MultiBinding>
             </FrameworkElement.Tag>
         </FrameworkElement>
@@ -451,8 +522,8 @@
                 </MultiBinding>
             </FrameworkElement.Tag>
         </FrameworkElement>
-                
-        <customControls:DataGridSqlResultBigData x:Name="dgDevices" Grid.Row="1" ItemsSource="{Binding DataSource, RelativeSource={RelativeSource AncestorType=Window}}" IsReadOnly="False" ColumnHeaderHeight="60" Sorting="DgDevices_Sorting" SelectedCellsChanged="dgDevices_SelectedCellsChanged" SelectionChanged="dgDevices_SelectionChanged" LoadingRow="dgDevices_LoadingRow" MouseDoubleClick="DgDevices_MouseDoubleClick" AutoGenerateColumns="False" ContextMenu="{StaticResource DataGridContextMenu}" ContextMenuOpening="DgDevices_ContextMenuOpening" CanUserAddRows="False" CanUserDeleteRows="False">
+
+        <customControls:DataGridSqlResultBigData x:Name="dgDevices" Grid.Row="1" ItemsSource="{Binding DataSource, RelativeSource={RelativeSource AncestorType=Window}}" IsReadOnly="False" ColumnHeaderHeight="60" Sorting="DgDevices_Sorting" SelectedCellsChanged="dgDevices_SelectedCellsChanged" SelectionChanged="dgDevices_SelectionChanged" LoadingRow="dgDevices_LoadingRow" AutoGenerateColumns="False" ContextMenu="{StaticResource DataGridContextMenu}" ContextMenuOpening="DgDevices_ContextMenuOpening" CanUserAddRows="False" CanUserDeleteRows="False">
             <DataGrid.CellStyle>
                 <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell"/>
             </DataGrid.CellStyle>
@@ -465,25 +536,33 @@
 
             <DataGrid.Columns>
                 <!-- <DataGridTextColumn Header="SORTINGVALUE" Binding="{Binding Path=SORTINGVALUE, UpdateSourceTrigger=PropertyChanged}"/> -->
-                <DataGridTextColumn Header="{x:Static res:Resources.ProtocolDescr}" Binding="{Binding Path=ASSEMBLYPROTOCOLDESCR, UpdateSourceTrigger=PropertyChanged}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Code}" Binding="{Binding Path=CODE, UpdateSourceTrigger=PropertyChanged}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Item}" Binding="{Binding Path=ITEM, UpdateSourceTrigger=PropertyChanged}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.ProtocolDescr}" Binding="{Binding {x:Static common:Constants.AssemblyProtocolDescr}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Code}" Binding="{Binding {x:Static common:Constants.Code}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Item}" Binding="{Binding {x:Static common:Constants.Item}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
                 <!-- <DataGridTextColumn Header="{x:Static res:Resources.ProfileBody}" Binding="{Binding Path=PROFILEBODY, UpdateSourceTrigger=PropertyChanged}"/> -->
-                <DataGridTextColumn Header="{x:Static res:Resources.Status}" Binding="{Binding Path=STATUS, UpdateSourceTrigger=PropertyChanged}"/>
-                <DataGridCheckBoxColumn CellStyle="{StaticResource DataGridCellCheckBoxStyle}" ElementStyle="{StaticResource CheckBoxStyle}" Header="{x:Static res:Resources.CheckedDevice}" Binding="{Binding Path=CHOICE, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.SapDescr}" Binding="{Binding Path=SAPDESCR, UpdateSourceTrigger=PropertyChanged}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.DeviceClass}" Binding="{Binding Path=DEVICECLASS, UpdateSourceTrigger=PropertyChanged}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Status}" Binding="{Binding {x:Static common:Constants.Status}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridCheckBoxColumn CellStyle="{StaticResource DataGridCellCheckBoxStyle}" ElementStyle="{StaticResource CheckBoxStyle}" Header="{x:Static res:Resources.CheckedDevice}" Binding="{Binding {x:Static common:Constants.Choice}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.SapDescr}" Binding="{Binding {x:Static common:Constants.SapDescr}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.DeviceClass}" Binding="{Binding {x:Static common:Constants.DeviceClass}, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="{Binding Path}"/>
 
-                <DataGridTextColumn Header="{x:Static res:Resources.DeviceComments}" Binding="{Binding Path=DEVICECOMMENTS, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DeviceCommentsDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.CodeOfNonMatch}" Binding="{Binding Path=CODEOFNONMATCH, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.GroupName}" Binding="{Binding Path=GROUP_NAME, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.DeviceType}" Binding="{Binding Path=DEVICETYPERU, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Constructive}" Binding="{Binding Path=CONSTRUCTIVE, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.AverageCurrent}" Binding="{Binding Path=AVERAGECURRENT, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Reason}" Binding="{Binding Path=REASON, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DeviceReasonDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Ts}" Binding="{Binding Path=TS, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.MmeCode}" Binding="{Binding Path=MME_CODE, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
-                <DataGridTextColumn Header="{x:Static res:Resources.Usr}" Binding="{Binding Path=USR, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}"/>
+                <!-- <DataGridTextColumn Header="{x:Static res:Resources.DeviceComments}" Binding="{Binding Path=DEVICECOMMENTS, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DeviceCommentsDataGridColumnProxy}, Path=Tag}"/> -->
+                <DataGridTemplateColumn Header="{x:Static res:Resources.DeviceComments}" CellStyle="{StaticResource DataGridCellEditByTextBoxStyle}" Visibility="{Binding Source={x:Reference DeviceCommentsDataGridColumnVisibilityProxy}, Path=Tag}" SortMemberPath="{x:Static common:Constants.DeviceComments}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Style="{StaticResource DeviceCommentsTextBoxStyle}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="{x:Static res:Resources.CodeOfNonMatch}" Binding="{Binding {x:Static common:Constants.CodeOfNonMatch}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.GroupName}" Binding="{Binding {x:Static common:Constants.GroupName}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.DeviceType}" Binding="{Binding {x:Static common:Constants.DeviceTypeRU}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Constructive}" Binding="{Binding {x:Static common:Constants.Constructive}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.AverageCurrent}" Binding="{Binding {x:Static common:Constants.AverageCurrent}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Reason}" Binding="{Binding {x:Static common:Constants.Reason}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DeviceReasonDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Ts}" Binding="{Binding {x:Static common:Constants.Ts}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.MmeCode}" Binding="{Binding {x:Static common:Constants.MmeCode}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.Usr}" Binding="{Binding {x:Static common:Constants.Usr}, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding Source={x:Reference DefaultDataGridColumnProxy}, Path=Tag}" SortMemberPath="{Binding Path}"/>
             </DataGrid.Columns>
         </customControls:DataGridSqlResultBigData>
     </Grid>

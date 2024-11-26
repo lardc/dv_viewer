@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:res="clr-namespace:SCME.dbViewer.Properties"
         xmlns:local="clr-namespace:SCME.dbViewer"
+        xmlns:common="clr-namespace:SCME.Common;assembly=Common"
         xmlns:customcontrols="clr-namespace:SCME.CustomControls;assembly=SCME.CustomControls"
         mc:Ignorable="d"
         Title="ManualInputAssemblyProtocolParam" Height="450" Width="800">
@@ -41,7 +42,7 @@
                 <Style BasedOn="{StaticResource DataGridCellStyle}" TargetType="DataGridCell"/>
             </DataGrid.CellStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{x:Static res:Resources.AssemblyProtocol}" Binding="{Binding Path=DESCR, UpdateSourceTrigger=PropertyChanged}" Width="auto"/>
+                <DataGridTextColumn Header="{x:Static res:Resources.AssemblyProtocol}" Binding="{Binding {x:Static common:Constants.Descr}, UpdateSourceTrigger=PropertyChanged}" Width="auto"/>
             </DataGrid.Columns>
         </customcontrols:DataGridSqlResult>
 

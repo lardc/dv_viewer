@@ -303,7 +303,7 @@ namespace SCME.dbViewer
             return result;
         }
 
-        public static DynamicObj UserPropertiesOfAssemblyProtocol(int assemblyProtocolID, int assemblyReportRecordCount, string assemblyJob, string deviceDescr, string deviceTypeRU, string omnity, string tq, string trr, string qrr, string dVdT, string tgt)
+        public static DynamicObj UserPropertiesOfAssemblyProtocol(int assemblyProtocolID, int assemblyReportRecordCount, string assemblyJob, string deviceDescr, string deviceTypeRU, string omnity, string tq, string trr, string qrr, string dUdt, string tgt)
         {
             //assemblyReportRecordCount - сколько записей содержит формируемый отчёт
             //запоминаем в возвращаемом результате значения реквизитов, которые пользователь установил для протокола сборки (по которому формируется отчёт)
@@ -363,8 +363,8 @@ namespace SCME.dbViewer
             //запоминаем значение Qrr
             result.SetMember(Constants.Qrr, qrr);
 
-            //запоминаем значение dVdT
-            result.SetMember(Constants.dVdT, dVdT);
+            //запоминаем значение dUdt
+            result.SetMember(Constants.dUdt, dUdt);
 
             //запоминаем значение Tgt
             result.SetMember(Constants.Tgt, tgt);
@@ -813,10 +813,10 @@ namespace SCME.dbViewer
                     result = new List<string>
                     {
                         "IRR",
-                        "TQ",
-                        "TRR",
+                        Common.Constants.Tq,
+                        Common.Constants.Trr,
                         "IrM",
-                        "QRR"
+                        Common.Constants.Qrr
                     };
 
                     break;
@@ -1262,12 +1262,12 @@ namespace SCME.dbViewer
             {
                 //переписываем постоянные данные, которые есть всегда
                 //уникальность перечисленных значений DEV_ID обеспечена на уровне хранимой процедуры dbViewerPrepareSortedGroups
-                string name = "ASSEMBLYPROTOCOLID";
+                string name = Common.Constants.AssemblyProtocolID;
                 int index = reader.GetOrdinal(name);
                 object value = reader[index];
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "ASSEMBLYPROTOCOLDESCR";
+                name = Common.Constants.AssemblyProtocolDescr;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
@@ -1277,39 +1277,39 @@ namespace SCME.dbViewer
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
                 */
 
-                name = "DEV_ID";
+                name = Common.Constants.DevID;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "TDEV_ID";
+                name = Common.Constants.TDevID;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "GROUP_NAME";
+                name = Common.Constants.GroupName;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "GROUP_ID";
+                name = Common.Constants.GroupID;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "CODE";
+                name = Common.Constants.Code;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "MME_CODE";
+                name = Common.Constants.MmeCode;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index])); //RemoveDuplicates()
-                index = reader.GetOrdinal("PROF_NAME");
+                index = reader.GetOrdinal(Common.Constants.ProfileName);
                 name = NameOfHiddenColumn(name);
                 SaveValue(isReload, item, name, ChangeString_AggDelimeterToDelimeter(Convert.ToString(reader[index]), Constants.StringDelimeter));
 
                 //дата возвращается всегда одно значение - max значение из списка дат изделий входящих в группу
-                name = "TS";
+                name = Common.Constants.Ts;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "USR";
+                name = Common.Constants.Usr;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index])); //RemoveDuplicates()
 
@@ -1317,20 +1317,20 @@ namespace SCME.dbViewer
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "DEVICETYPERU";
+                name = Common.Constants.DeviceTypeRU;
                 index = reader.GetOrdinal(name);
                 string deviceTypeRu = Convert.ToString(reader[index]);
                 SaveValue(isReload, item, name, deviceTypeRu);
 
-                name = "AVERAGECURRENT";
+                name = Common.Constants.AverageCurrent;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "CONSTRUCTIVE";
+                name = Common.Constants.Constructive;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
-                name = "ITEM";
+                name = Common.Constants.Item;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
                 /*
@@ -1343,7 +1343,7 @@ namespace SCME.dbViewer
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
                 //от хранимой процедуры можем получить только 0 или 1
-                name = "CHOICE";
+                name = Common.Constants.Choice;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToBoolean(reader[index]));
 
@@ -1351,7 +1351,7 @@ namespace SCME.dbViewer
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index])); //RemoveDuplicates(Convert.ToString(reader[index]))
 
-                name = "SAPDESCR";
+                name = Common.Constants.SapDescr;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
 
@@ -1360,7 +1360,7 @@ namespace SCME.dbViewer
                 byte statusColdCount = Convert.ToByte(reader[reader.GetOrdinal("STATUSCOLDCOUNT")]);
                 byte statusHotSum = Convert.ToByte(reader[reader.GetOrdinal("STATUSHOTSUM")]);
                 byte statusHotCount = Convert.ToByte(reader[reader.GetOrdinal("STATUSHOTCOUNT")]);
-                name = "STATUS";
+                name = Common.Constants.Status;
                 SaveValue(isReload, item, name, CalcDeviceStatus(statusColdSum, statusColdCount, statusHotSum, statusHotCount));
                 name = NameOfHiddenColumn(name);
                 //запоминаем как был вычислен итоговый статус группы
@@ -1370,17 +1370,17 @@ namespace SCME.dbViewer
                 //итоговое значение класса сформированной группы есть минимум из максимумов по холодному и горячему классам
                 object deviceClassColdMax = reader[reader.GetOrdinal("DEVICECLASSCOLDMAX")];
                 object deviceClassHotMax = reader[reader.GetOrdinal("DEVICECLASSHOTMAX")];
-                name = "DEVICECLASS";
+                name = Common.Constants.DeviceClass;
                 SaveValue(isReload, item, name, CalcDeviceClass(deviceClassColdMax, deviceClassHotMax));
                 //запоминаем как был вычислен итоговый класс группы
                 name = NameOfHiddenColumn(name);
                 SaveValue(isReload, item, name, CalcDeviceClassHelp(deviceClassColdMax, deviceClassHotMax));
 
-                name = "REASON";
+                name = Common.Constants.Reason;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, RemoveDuplicates(Convert.ToString(reader[index])));
 
-                name = "CODEOFNONMATCH";
+                name = Common.Constants.CodeOfNonMatch;
                 index = reader.GetOrdinal(name);
                 SaveValue(isReload, item, name, RemoveDuplicates(Convert.ToString(reader[index])));
 
@@ -1393,20 +1393,20 @@ namespace SCME.dbViewer
                 SaveValue(isReload, item, name, Convert.ToString(reader[index]));
                 /*
                 //в интерфейсе показываем пользователю тело профиля, в hint к этому полю показываем сгруппированное обозначение профилей                
-                index = reader.GetOrdinal("PROF_NAME");
+                index = reader.GetOrdinal(Common.Constants.ProfileName);
                 name = NameOfHiddenColumn(name);
                 SaveValue(isReload, item, name, ChangeString_AggDelimeterToDelimeter(Convert.ToString(reader[index]), Constants.StringDelimeter));
                 */
 
-                //переписываем переменные данные - коментарии к изделию, описание условий испытаний и измеряемых параметров
-                name = "DEVICECOMMENTS";
+                //переписываем переменные данные - комментарии к изделию, описание условий испытаний и измеряемых параметров
+                name = Common.Constants.DeviceComments;
                 index = reader.GetOrdinal(name);
                 string deviceComments = Convert.ToString(reader[index]);
 
                 if ((deviceComments != null) && (deviceComments.Trim() != string.Empty))
                 {
                     //обрабатываем результат группировки - строки комментариев к группе измерений перечислены через разделитель - результат функции STRING_AGG
-                    List<string> commentsList = deviceComments.Split(SCME.Common.Constants.cString_AggDelimeter).ToList<string>();
+                    List<string> commentsList = deviceComments.Split(SCME.Common.Constants.cString_AggDelimeter).ToList();
 
                     //получаем не повторяющиеся комментарии (список в строку, каждый уникальный комментарий с новой строки) к группе измерений и имя автора с последней (максимальной) датой комментария
                     string unicComments = UnicComments(commentsList, out string lastDateAndCreator);
@@ -1696,7 +1696,11 @@ namespace SCME.dbViewer
                 {
                     Header = header,
                     IsReadOnly = true,
-                    Binding = new Binding(bindPath)
+                    Binding = new Binding(bindPath),
+
+                    //данное поле пришлось применить взамен поля Binding из-за столбца комментариев класса DataGridTemplateColumn, у которого поле Binding отсутствует
+                    //это поле (SortMemberPath) начал использовать только для единообразия чтения имени поля базы данных связанного с создаваемым столбцом dataGrid
+                    SortMemberPath = bindPath
                 };
 
                 dataGrid.Columns.Insert(index, column);
@@ -1776,7 +1780,9 @@ namespace SCME.dbViewer
                                                   {
                                                       //это вручную созданный параметр - всегда будем создавать его в самом конце списка столбцов - после условий и параметров померенных КИПП-ом
                                                       case true:
-                                                          DataGridColumn lastXMLColumn = dataGrid.Columns.LastOrDefault(c => ((System.Windows.Data.Binding)((DataGridBoundColumn)c).Binding).Path.Path.Contains(SCME.Common.Constants.FromXMLNameSeparator));
+                                                          //DataGridColumn lastXMLColumn = dataGrid.Columns.LastOrDefault(c => ((System.Windows.Data.Binding)((DataGridBoundColumn)c).Binding).Path.Path.Contains(SCME.Common.Constants.FromXMLNameSeparator));
+
+                                                          DataGridColumn lastXMLColumn = dataGrid.Columns.LastOrDefault(c => c.SortMemberPath.Contains(SCME.Common.Constants.FromXMLNameSeparator));
                                                           index = (lastXMLColumn == null) ? Constants.StartConditionsParamersInDataGridIndex : dataGrid.Columns.IndexOf(lastXMLColumn) + 1;
 
                                                           break;
@@ -1826,9 +1832,9 @@ namespace SCME.dbViewer
             // false - принятый column отображает данные не conditions/parameters
             if (column != null)
             {
-                string bindPath = Common.Routines.BindPathByColumn(column);
+                string sourceFieldName = Common.Routines.SourceFieldNameByColumn(column);
 
-                return (!string.IsNullOrEmpty(bindPath)) && bindPath.Contains(SCME.Common.Constants.FromXMLNameSeparator);
+                return (!string.IsNullOrEmpty(sourceFieldName)) && sourceFieldName.Contains(SCME.Common.Constants.FromXMLNameSeparator);
             }
 
             return false;
@@ -1861,93 +1867,93 @@ namespace SCME.dbViewer
         {
             if ((reader != null) && (item != null))
             {
-                string name = "ASSEMBLYPROTOCOLID";
+                string name = Common.Constants.AssemblyProtocolID;
                 int index = reader.GetOrdinal(name);
                 int? assemblyProtocolID = int.TryParse(Convert.ToString(reader[index]), out int intValue) ? (int?)intValue : null;
                 SaveValue(false, item, name, assemblyProtocolID);
 
-                name = "DESCR";
+                name = Common.Constants.Descr;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "TS";
+                name = Common.Constants.Ts;
                 index = reader.GetOrdinal(name);
                 DateTime? ts = DateTime.TryParse(Convert.ToString(reader[index]), out DateTime dateTimeValue) ? (DateTime?)dateTimeValue : null;
                 SaveValue(false, item, name, ts);
 
-                name = "APRECORDCOUNT";
+                name = Common.Constants.ApRecordCount;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "USR";
+                name = Common.Constants.Usr;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "DEVICEMODEVIEW";
+                name = Common.Constants.DeviceModeView;
                 index = reader.GetOrdinal(name);
                 bool? deviceModeView = bool.TryParse(Convert.ToString(reader[index]), out bool boolValue) ? (bool?)boolValue : null;
                 SaveValue(false, item, name, deviceModeView);
 
-                name = "ASSEMBLYJOB";
+                name = Common.Constants.AssemblyJob;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "EXPORT";
+                name = Common.Constants.Export;
                 index = reader.GetOrdinal(name);
                 bool? export = bool.TryParse(Convert.ToString(reader[index]), out boolValue) ? (bool?)boolValue : null;
                 SaveValue(false, item, name, export);
 
-                name = "DEVICETYPERU";
+                name = Common.Constants.DeviceTypeRU;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "DEVICETYPEEN";
+                name = Common.Constants.DeviceTypeEN;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "AVERAGECURRENT";
+                name = Common.Constants.AverageCurrent;
                 index = reader.GetOrdinal(name);
                 int? averageCurrent = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
                 SaveValue(false, item, name, averageCurrent);
 
-                name = "CONSTRUCTIVE";
+                name = Common.Constants.Constructive;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "DEVICECLASS";
+                name = Common.Constants.DeviceClass;
                 index = reader.GetOrdinal(name);
                 int? deviceClass = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
                 SaveValue(false, item, name, deviceClass);
 
-                name = "DVDT";
+                name = Common.Constants.SqlDUdt;
                 index = reader.GetOrdinal(name);
-                int? dvdt = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
-                SaveValue(false, item, name, dvdt);
+                int? dUdt = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
+                SaveValue(false, item, name, dUdt);
 
-                name = "TRR";
+                name = Common.Constants.Trr;
                 index = reader.GetOrdinal(name);
                 double? trr = double.TryParse(Convert.ToString(reader[index]), out double doubleValue) ? (double?)doubleValue : null;
                 SaveValue(false, item, name, trr);
 
-                name = "TQ";
+                name = Common.Constants.Tq;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "TGT";
+                name = Common.Constants.Tgt;
                 index = reader.GetOrdinal(name);
                 double? tgt = double.TryParse(Convert.ToString(reader[index]), out doubleValue) ? (double?)doubleValue : null;
                 SaveValue(false, item, name, tgt);
 
-                name = "QRR";
+                name = Common.Constants.Qrr;
                 index = reader.GetOrdinal(name);
                 int? qrr = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
                 SaveValue(false, item, name, qrr);
 
-                name = "CLIMATIC";
+                name = Common.Constants.Climatic;
                 index = reader.GetOrdinal(name);
                 SaveValue(false, item, name, Convert.ToString(reader[index]));
 
-                name = "OMNITY";
+                name = Common.Constants.Omnity;
                 index = reader.GetOrdinal(name);
                 int? omnity = int.TryParse(Convert.ToString(reader[index]), out intValue) ? (int?)intValue : null;
                 SaveValue(false, item, name, omnity);
@@ -1971,8 +1977,8 @@ namespace SCME.dbViewer
             switch (fieldName)
             {
                 //требуется вычислить наиболее часто используемое значение омности - т.е. части обозначения ITEM
-                case "OMNITY":
-                    return data.GroupBy(i => OmnityFromItem(ValueByFieldName(i, "ITEM"))).OrderByDescending(g => g.Count()).Select(g => g.Key).First();
+                case Common.Constants.Omnity:
+                    return data.GroupBy(i => OmnityFromItem(ValueByFieldName(i, Common.Constants.Item))).OrderByDescending(g => g.Count()).Select(g => g.Key).First();
 
                 default:
                     return data.GroupBy(i => ValueByFieldName(i, fieldName)).OrderByDescending(g => g.Count()).Select(g => g.Key).First();
@@ -2091,9 +2097,9 @@ namespace SCME.dbViewer
             return (qrr == null) ? null : (int?)qrr.Value;
         }
 
-        public static NrmStatus IsInNrm(DynamicObj item, string bindingName)
+        public static NrmStatus IsInNrm(DynamicObj item, string sourceFieldName)
         {
-            //bindingName - имя столбца в item
+            //sourceFieldName - имя столбца в item
             //возвращает:
             //CheckNrmStatus.UnCheckable - проверка норм не имеет смысла
             //CheckNrmStatus.Good - значение в пределах нормы
@@ -2106,7 +2112,7 @@ namespace SCME.dbViewer
             {
                 //считываем индекс текущего столбца 
                 List<string> columnsList = item.GetDynamicMemberNames().ToList();
-                string columnName = bindingName.ToLower();
+                string columnName = sourceFieldName.ToLower();
                 int columnIndex = columnsList.IndexOf(columnName);
 
                 //считываем индекс самого первого параметра в данном item. в каждом item своё значение начального индекса параметров изделия
@@ -2203,7 +2209,7 @@ namespace SCME.dbViewer
             return result;
         }
 
-        public static bool? CheckValuesFromRegularFields(DynamicObj item, string bindingName)
+        public static bool? CheckValuesFromRegularFields(DynamicObj item, string sourceFieldName)
         {
             //проверка значений простых (не являющихся conditions и parameters) реквизитов с целью раскраски для пользователя
             //возвращает:
@@ -2211,7 +2217,7 @@ namespace SCME.dbViewer
             // true - хорошее значение;
             // false - плохое значение
             bool? result = null;
-            string columnName = bindingName.ToLower();
+            string columnName = sourceFieldName.ToLower();
 
             switch (columnName)
             {
@@ -2219,9 +2225,7 @@ namespace SCME.dbViewer
                     if (item.GetMember(columnName, out object value))
                     {
                         if (value != DBNull.Value)
-                        {
-                            result = (value.ToString() == Constants.GoodSatatus);
-                        }
+                            result = value.ToString() == Constants.GoodSatatus;
                     }
 
                     break;
@@ -2248,11 +2252,11 @@ namespace SCME.dbViewer
                         break;
 
                     case "ДЧ":
-                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "IRRM", "TRR", "URSM", "IRSM" };
+                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "IRRM", Common.Constants.Trr, "URSM", "IRSM" };
                         break;
 
                     case "ДЧЛ":
-                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "IRRM", "PRSM", "TRR", "QRR", "URSM", "IRSM" };
+                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "IRRM", "PRSM", Common.Constants.Trr, Common.Constants.Qrr, "URSM", "IRSM" };
                         break;
 
                     case "МД":
@@ -2261,36 +2265,36 @@ namespace SCME.dbViewer
                         break;
 
                     case "МДЧ":
-                        result = new string[] { "TRR", "QRR", "IRRM", "UBR", "ITM", "UTM", "URSM", "URRM", "IRRM", "IRSM" };
+                        result = new string[] { Common.Constants.Trr, Common.Constants.Qrr, "IRRM", "UBR", "ITM", "UTM", "URSM", "URRM", "IRRM", "IRSM" };
                         break;
 
                     case "МДЧЛ":
-                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "URSM", "IRRM", "PRSM", "TRR", "QRR", "IRRM", "IRSM" };
+                        result = new string[] { "UBR", "ITM", "UTM", "URRM", "URSM", "IRRM", "PRSM", Common.Constants.Trr, Common.Constants.Qrr, "IRRM", "IRSM" };
                         break;
 
                     case "МТ":
                     case "МТД":
-                        result = new string[] { "UBO", "UBR", "UDSM", "URSM", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "TQ", "IGT", "UGT", "DVDT", "IDSM", "IRSM" };
+                        result = new string[] { "UBO", "UBR", "UDSM", "URSM", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", Common.Constants.Tq, "IGT", "UGT", Common.Constants.DUdt.ToUpper(), "IDSM", "IRSM" };
                         break;
 
                     case "МТБ":
                     case "МТБЧ":
                     case "МТБИ":
-                        result = new string[] { "UBO", "UBR", "UDSM", "URSM", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "IGT", "UGT", "TQ", "TRR", "QRR", "IRR", "DVDT", "IDSM", "IRSM" };
+                        result = new string[] { "UBO", "UBR", "UDSM", "URSM", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "IGT", "UGT", Common.Constants.Tq, Common.Constants.Trr, Common.Constants.Qrr, "IRR", Common.Constants.DUdt.ToUpper(), "IDSM", "IRSM" };
                         break;
 
                     case "Т":
-                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "TQ", "IGT", "UGT", "DVDT" };
+                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", Common.Constants.Tq, "IGT", "UGT", Common.Constants.DUdt.ToUpper() };
                         break;
 
                     case "ТБ":
                     case "ТБИ":
                     case "ТБЧ":
-                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "TQ", "TRR", "QRR", "IRR", "TGT", "IGT", "UGT", "DVDT" };
+                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", Common.Constants.Tq, Common.Constants.Trr, Common.Constants.Qrr, "IRR", Common.Constants.Tgt, "IGT", "UGT", Common.Constants.DUdt.ToUpper() };
                         break;
 
                     case "ТЛ":
-                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "PRSM", "TQ", "IGT", "UGT", "DVDT" };
+                        result = new string[] { "UBO", "UBR", "ITM", "UTM", "UDRM", "URRM", "IDRM", "IRRM", "PRSM", Common.Constants.Tq, "IGT", "UGT", Common.Constants.DUdt.ToUpper() };
                         break;
                 }
             }
@@ -2328,7 +2332,7 @@ namespace SCME.dbViewer
                 case "ТБИ":
                 case "ТБЧ":
                 case "ТЛ":
-                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBO", "В"), new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UTM", "В"), new ParamConditionDescr("RT", "IGT", "мА"), new ParamConditionDescr("RT", "UGT", "В"), new ParamConditionDescr("TM", "UDRM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IDRM", "мА"), new ParamConditionDescr("TM", "IRRM", "мА"), new ParamConditionDescr("TM", "DUDt", "В/мкс") };
+                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBO", "В"), new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UTM", "В"), new ParamConditionDescr("RT", "IGT", "мА"), new ParamConditionDescr("RT", "UGT", "В"), new ParamConditionDescr("TM", "UDRM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IDRM", "мА"), new ParamConditionDescr("TM", "IRRM", "мА"), new ParamConditionDescr("TM", Common.Constants.DUdt, "В/мкс"), new ParamConditionDescr("TM", "UDSM", "В"), new ParamConditionDescr("TM", "URSM", "В") };
                     break;
 
                 case "Д":
@@ -2339,7 +2343,7 @@ namespace SCME.dbViewer
                 case "МДТ":
                 case "МДЧ":
                 case "МДЧЛ":
-                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UTM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IRRM", "мА") };
+                    result = new List<ParamConditionDescr> { new ParamConditionDescr("RT", "UBR", "В"), new ParamConditionDescr("RT", "ITM", "А"), new ParamConditionDescr("RT", "UFM", "В"), new ParamConditionDescr("TM", "URRM", "В"), new ParamConditionDescr("TM", "IRRM", "мА"), new ParamConditionDescr("TM", "URSM", "В") };
                     break;
             }
 

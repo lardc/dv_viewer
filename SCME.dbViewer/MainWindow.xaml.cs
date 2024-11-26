@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading;
@@ -222,8 +221,8 @@ namespace SCME.dbViewer
                                                       " {3}";
         */
 
-        //столбец из this.dgDevices по которому пользователь хочет выполнить либо сортировку, либо фильтрацию данных
-        private DataGridBoundColumn FActiveColumn = null;
+        //столбец из this.dgDevices по которому пользователь хочет выполнить либо сортировку данных
+        private string FSortSourceFieldName = null;
 
         private CustomControls.ActiveFilters FActiveFilters = null;
 
@@ -237,6 +236,10 @@ namespace SCME.dbViewer
             {
                 if (value != this.FAssemblyProtocolMode)
                 {
+                    //при выходе из режима протокола сборки очистим все ComboBox, которые дают возможность фильтрации данных т.к. после просмотра протокола сборки в них останутся данные из шапки протокола сборки)
+                    if (value == false)
+                        this.ClearSelectedItemInComboBoxFilters();
+
                     this.FAssemblyProtocolMode = value;
                     this.NotifyPropertyChanged();
                 }
@@ -268,7 +271,10 @@ namespace SCME.dbViewer
             get { return this.FProcessWaitVisualizerHWnd; }
         }
 
+        private bool FTextBoxDeviceCommentsTextChanged = false;
+
         private object FColumnsLocker = new object();
+
 
         /*
         //часть JOIN SQL запроса, которая получена для цели сортировки данных
@@ -738,6 +744,48 @@ namespace SCME.dbViewer
             }
         }
 
+        private string SelectedValueFromComboBox(ComboBox cmb)
+        {
+            //возвращает значение выбранное в cmb, соответствующее принятому cmb (cmbDUDt, cmbTrr, cmbTq, cmbTgt, cmbQrr)
+            string result;
+
+            if (cmb != null)
+            {
+                switch (cmb.Name)
+                {
+                    case "cmbDUDt":
+                        result = (cmbDUDt.SelectedItem is GroupOfValues groupOfValuesdUdt) ? string.Concat("V", groupOfValuesdUdt.TrueValue) : null;
+
+                        return result;
+
+                    case "cmbTrr":
+                        result = (cmbTrr.SelectedItem is GroupOfValues groupOfValuesTrr) ? groupOfValuesTrr.TrueValue : null;
+
+                        return result;
+
+                    case "cmbTq":
+                        result = (cmbTq.SelectedItem is GroupOfValues groupOfValuesTq) ? groupOfValuesTq.TrueValue : null;
+
+                        return result;
+
+                    case "cmbTgt":
+                        result = (cmbTgt.SelectedItem is GroupOfValues groupOfValuesTgt) ? groupOfValuesTgt.TrueValue : null;
+
+                        return result;
+
+                    case "cmbQrr":
+                        result = (cmbQrr.SelectedItem is QrrGroupOfValues groupOfValuesQrr) ? groupOfValuesQrr.Value : null;
+
+                        return result;
+
+                    default:
+                        return null;
+                }
+            }
+
+            return null;
+        }
+
         private DynamicObj UserPropsOfAssemblyProtocol(int assemblyReportRecordCount)
         {
             //assemblyReportRecordCount - сколько записей содержит данный отчёт
@@ -793,43 +841,23 @@ namespace SCME.dbViewer
             result.SetMember(Constants.Omnity, tbOmnity.Text);
 
             //запоминаем значение Tq
-            string tq = null;
-            if (cmbTq.SelectedItem is GroupOfValues groupOfValuesTq)
-            {
-                tq = groupOfValuesTq.TrueValue;
-            }
+            string tq = this.SelectedValueFromComboBox(this.cmbTq);
             result.SetMember(Constants.Tq, tq);
 
             //запоминаем значение Trr
-            string trr = null;
-            if (cmbTrr.SelectedItem is GroupOfValues groupOfValuesTrr)
-            {
-                trr = groupOfValuesTrr.TrueValue;
-            }
+            string trr = this.SelectedValueFromComboBox(this.cmbTrr);
             result.SetMember(Constants.Trr, trr);
 
             //запоминаем значение Qrr
-            string qrr = null;
-            if (cmbQrr.SelectedItem is QrrGroupOfValues groupOfValuesQrr)
-            {
-                qrr = groupOfValuesQrr.Value;
-            }
+            string qrr = this.SelectedValueFromComboBox(this.cmbQrr);
             result.SetMember(Constants.Qrr, qrr);
 
-            //запоминаем значение dVdT
-            string dVdT = null;
-            if (cmbDUDt.SelectedItem is GroupOfValues groupOfValuesDVdT)
-            {
-                dVdT = groupOfValuesDVdT.TrueValue;
-            }
-            result.SetMember(Constants.dVdT, dVdT);
+            //запоминаем значение dUdt
+            string dUdt = this.SelectedValueFromComboBox(this.cmbDUDt);
+            result.SetMember(Constants.dUdt, dUdt);
 
             //запоминаем значение Tgt
-            string tgt = null;
-            if (cmbTgt.SelectedItem is GroupOfValues groupOfValuesTgt)
-            {
-                tgt = groupOfValuesTgt.TrueValue;
-            }
+            string tgt = this.SelectedValueFromComboBox(this.cmbTgt);
             result.SetMember(Constants.Tgt, tgt);
 
             //запоминаем количество записей в отчёте
@@ -1014,6 +1042,7 @@ namespace SCME.dbViewer
                     {
                         case Key.Delete:
                         case Key.Back:
+                        case Key.Escape:
                             cmb.SelectedItem = null;
                             result = true;
                             break;
@@ -1035,8 +1064,8 @@ namespace SCME.dbViewer
         {
             if (e.Key == Key.F5)
             {
-                e.Handled = true;
                 this.RefreshData();
+                e.Handled = true;
             }
         }
 
@@ -1190,7 +1219,7 @@ namespace SCME.dbViewer
             {
                 if (dgDevices.CurrentItem is DynamicObj currentItem)
                 {
-                    object objTDevID = this.dgDevices.ValueFromSelectedRow("TDEV_ID");
+                    object objTDevID = this.dgDevices.ValueFromSelectedRow(Common.Constants.TDevID);
 
                     if (objTDevID != null)
                     {
@@ -1298,7 +1327,7 @@ namespace SCME.dbViewer
                     if ((dgDevices.CurrentCell.Column is DataGridBoundColumn column) && (dgDevices.CurrentItem is DynamicObj currentItem))
                     {
                         //получаем имя пользовательского параметра. имя начинается с обозначения температурного режима, далее само имя
-                        string paramName = Common.Routines.BindPathByColumn(column);
+                        string paramName = Common.Routines.SourceFieldNameByColumn(column);
 
                         //смотрим на индекс столбца в таблице
                         //столбцы параметров пользователя создаются динамически, они все стоят за индексом Constants.ParametersInDataSourceFirstIndex
@@ -1328,7 +1357,7 @@ namespace SCME.dbViewer
                                         if (manualInputParamValueEditor.GetValue(ref value) ?? false)
                                         {
                                             //считываем список идентификаторов изделий начинающихся с температурного режима из текущей записи (каждая запись всегда есть группа изделий)
-                                            object objTDevID = this.dgDevices.ValueFromSelectedRow("TDEV_ID");
+                                            object objTDevID = this.dgDevices.ValueFromSelectedRow(Common.Constants.TDevID);
 
                                             if (objTDevID != null)
                                             {
@@ -1415,7 +1444,7 @@ namespace SCME.dbViewer
                     if ((dgDevices.CurrentCell.Column is DataGridBoundColumn column) && (dgDevices.CurrentItem is DynamicObj currentItem))
                     {
                         //получаем имя пользовательского параметра. имя начинается с обозначения температурного режима, далее само имя
-                        string paramName = Common.Routines.BindPathByColumn(column);
+                        string paramName = Common.Routines.SourceFieldNameByColumn(column);
 
                         //смотрим на индекс столбца в таблице
                         //столбцы параметров пользователя создаются динамически, они все стоят за индексом Constants.ParametersInDataSourceFirstIndex
@@ -1440,7 +1469,7 @@ namespace SCME.dbViewer
                                     if (DbRoutines.CheckManualInputParamExist(paramName, out int manualInputParamID))
                                     {
                                         //считываем список идентификаторов изделий начинающихся с температурного режима из текущей записи (каждая запись всегда есть группа изделий)
-                                        object objTDevID = this.dgDevices.ValueFromSelectedRow("TDEV_ID");
+                                        object objTDevID = this.dgDevices.ValueFromSelectedRow(Common.Constants.TDevID);
 
                                         if (objTDevID != null)
                                         {
@@ -1490,7 +1519,7 @@ namespace SCME.dbViewer
         {
             if (Common.Routines.IsUserCanCreateValueOfManuallyEnteredParameter(this.PermissionsLo))
             {
-                object obj = this.dgDevices.ValueFromSelectedRow("GROUP_NAME");
+                object obj = this.dgDevices.ValueFromSelectedRow(Common.Constants.GroupName);
                 string groupName = obj?.ToString();
 
                 obj = this.dgDevices.ValueFromSelectedRow("PROF_ID");
@@ -1510,51 +1539,6 @@ namespace SCME.dbViewer
 
                 manualAddDevices.ShowModal(groupName, profileGUID, assemblyProtocolID);
             }
-
-            /*
-                        //читаем обозначение ПЗ, идентификатора ПЗ и обозначения изделия
-                        object obj = this.dgDevices.ValueFromSelectedRow("GROUP_NAME");
-                        string groupName = (obj == null) ? null : obj.ToString();
-
-                        obj = this.dgDevices.ValueFromSelectedRow("GROUP_ID");
-                        int groupID = (obj == null) ? -1 : Convert.ToInt32(obj);
-
-                        obj = this.dgDevices.ValueFromSelectedRow("CODE");
-                        string deviceCode = (obj == null) ? null : Convert.ToString(obj);
-
-                        //читаем значение имени профиля PROF_NAME, оно хранится как скрытое значение (hint) к полю PROFILEBODY
-                        obj = this.dgDevices.ValueFromSelectedRow(Routines.NameOfHiddenColumn("PROFILEBODY"));
-                        string stringsProfileName = (obj == null) ? null : obj.ToString();
-
-                        obj = this.dgDevices.ValueFromSelectedRow("PROF_ID");
-                        string stringsProfileID = (obj == null) ? null : obj.ToString();
-
-                        obj = this.dgDevices.ValueFromSelectedRow("PROF_GUID");
-                        string stringsProfileGUID = (obj == null) ? null : obj.ToString();
-
-                        obj = this.dgDevices.ValueFromSelectedRow("DEV_ID");
-                        string stringsDevID = (obj == null) ? null : obj.ToString();
-
-                        obj = this.dgDevices.ValueFromSelectedRow("SAPID");
-                        string stringsSapID = (obj == null) ? null : obj.ToString();
-
-                        //считываем из результатов группировки первые значения нужных нам реквизитов
-                        string profileName = Routines.FirstInList(stringsProfileName, Constants.StringDelimeter);
-
-                        string sProfileID = Routines.FirstInList(stringsProfileID, Constants.DelimeterForStringConcatenate.ToString());
-                        int? profileID = (sProfileID == null) ? null : (int?)Convert.ToInt32(sProfileID);
-
-                        string profileGUID = Routines.FirstInList(stringsProfileGUID, Constants.DelimeterForStringConcatenate.ToString());
-
-                        string sDevID = Routines.FirstInList(stringsDevID, SCME.Common.Constants.cString_AggDelimeter.ToString());
-                        int? devID = (sDevID == null) ? null : (int?)Convert.ToInt32(sDevID);
-
-
-                        string sSapID = Routines.FirstInList(stringsSapID, Constants.DelimeterForStringConcatenate.ToString());
-                        bool? sapID = ((sSapID == null) || (sSapID == string.Empty)) ? null : (bool?)Convert.ToBoolean(sSapID);
-
-                        bool? sapID = null;
-            */
         }
 
         private void MnuShowDeviceReferencesClick(object sender, RoutedEventArgs e)
@@ -1602,6 +1586,39 @@ namespace SCME.dbViewer
             }
         }
 
+        private int[] ObjectToArrayOfInt(object obj)
+        {
+            if (obj != null)
+            {
+                string[] stringArray = obj.ToString().Split(new[] { Common.Constants.cString_AggDelimeter }, StringSplitOptions.None);
+                int[] arrayOfInt = Array.ConvertAll(stringArray, s => int.Parse(s));
+
+                return arrayOfInt;
+            }
+
+            return null;
+        }
+
+        private int[] DevIDArrayFromSelectedRow()
+        {
+            //чтение массива идентификаторов Dev_ID из выбранной пользователем записи
+            object obj = this.dgDevices.ValueFromSelectedRow("Dev_ID");
+
+            return ObjectToArrayOfInt(obj);
+        }
+
+        private void WorkWithCommentsShowModalForSelectedRow(int[] devIDArray)
+        {
+            if (devIDArray != null)
+            {
+                WorkWithComments workWithComments = new WorkWithComments(devIDArray);
+
+                if (workWithComments.ShowModal())
+                    this.RefreshShowingData();
+            }
+        }
+
+        /*
         private void DgDevices_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             IInputElement inputElement = e.MouseDevice.DirectlyOver;
@@ -1610,30 +1627,19 @@ namespace SCME.dbViewer
             {
                 if ((element.Parent is DataGridCell cell) && (cell != null))
                 {
-                    if (Common.Routines.BindPathByColumn(cell.Column) == Constants.DeviceComments)
-                    {
-                        object obj = this.dgDevices.ValueFromSelectedRow("Dev_ID");
-
-                        if (obj != null)
-                        {
-                            string[] stringArray = obj.ToString().Split(new[] { Common.Constants.cString_AggDelimeter }, StringSplitOptions.None);
-                            int[] devIDArray = Array.ConvertAll(stringArray, s => int.Parse(s));
-
-                            WorkWithComments workWithComments = new WorkWithComments(devIDArray);
-
-                            if (workWithComments.ShowModal())
-                                this.RefreshShowingData();
-                        }
-                    }
+                    if (Common.Routines.SourceFieldNameByColumn(cell.Column) == Common.Constants.DeviceComments)
+                        WorkWithCommentsShowModalForSelectedRow();
                 }
             }
 
             e.Handled = true;
         }
+        */
 
         private string BindingPathByColumnIndex(int index)
         {
             //для столбца dgDevices с индексом index возвращает имя столбца в источнике данных
+            /*
             if (dgDevices.Columns[index] is DataGridTextColumn column)
             {
                 if (column.Binding is Binding bind)
@@ -1641,6 +1647,9 @@ namespace SCME.dbViewer
             }
 
             return null;
+            */
+
+            return this.dgDevices.Columns[index].SortMemberPath;
         }
 
         /*
@@ -1715,7 +1724,7 @@ namespace SCME.dbViewer
                 SCME.Common.Routines.ShowProcessWaitVisualizerSortingFiltering(this, this.ProcessWaitVisualizerHWnd);
 
                 //запоминаем столбец по которому пользователь хочет выполнить сортировку отображаемого списка и режим изменения данных кеша
-                this.FActiveColumn = (e.Column is DataGridBoundColumn column) ? column : null;
+                this.FSortSourceFieldName = e.Column.SortMemberPath;
 
                 //обновляем отображаемые данные чтобы увидеть результаты сортировки
                 this.RefreshShowingData();
@@ -1856,7 +1865,7 @@ namespace SCME.dbViewer
                     cb.Focusable = false;
 
                     //считываем список идентификаторов изделий записанных через разделитель из записи в которой пользователь тычет в cb
-                    object value = this.dgDevices.ValueFromSelectedRow("DEV_ID");
+                    object value = this.dgDevices.ValueFromSelectedRow(Common.Constants.DevID);
 
                     if (value != null)
                     {
@@ -1983,7 +1992,7 @@ namespace SCME.dbViewer
             this.FActiveFilters.Clear();
 
             //включаем фильтр по принятому обозначению протокола сборки
-            CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, "ASSEMBLYPROTOCOLDESCR") { Type = typeof(System.Int32).FullName, TittlefieldName = Properties.Resources.AssemblyProtocol, Comparison = "=", Value = descr, AcceptedToUse = true };
+            CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, Common.Constants.AssemblyProtocolDescr) { Type = typeof(System.Int32).FullName, TittlefieldName = Properties.Resources.AssemblyProtocol, Comparison = "=", Value = descr, AcceptedToUse = true };
 
             //включаем режим просмотра протокола сборки
             this.AssemblyProtocolMode = true;
@@ -1999,8 +2008,8 @@ namespace SCME.dbViewer
                 //данное действие предполагает фильтрацию данных
                 SCME.Common.Routines.ShowProcessWaitVisualizerSortingFiltering(this, this.ProcessWaitVisualizerHWnd);
 
-                //установка состояния 'Сборка' для выбранных групп из показанных в данный момент пользователю
-                int assemblyProtocolID = DbRoutines.CreateAssemblyProtocol(this.TabNum);
+                //создание протокола сборки, установка состояния 'Сборка' для выбранных групп из показанных в данный момент пользователю
+                int assemblyProtocolID = DbRoutines.CreateAssemblyProtocol(this.TabNum, this.AssemblyProtocolMode);
 
                 //HideProcessWaitVisualizerSortingFiltering будет вызван при полном выгребании отложенной очереди исполняемой в потоке System.Windows.Threading.DispatcherTimer
 
@@ -2043,8 +2052,13 @@ namespace SCME.dbViewer
                     {
                         //идентификатор протокола сборки успешно вычислен по его обозначению
                         //отправляем выбранные пользователем группы измерений в протокол сборки
-                        if (DbRoutines.SendToAssemblyProtocol(assemblyProtocolID))
+                        if (DbRoutines.SendToAssemblyProtocol(this.AssemblyProtocolMode, assemblyProtocolID))
+                        {
+                            if (this.AssemblyProtocolMode)
+                                this.RefreshShowingData();
+
                             MessageBox.Show(string.Format(Properties.Resources.SelectedSuccessfullySendedToAssemblyProtocol, descr.ToString()), Application.ResourceAssembly.GetName().Name, MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
                     }
                 }
             }
@@ -2062,78 +2076,8 @@ namespace SCME.dbViewer
         {
             //на момент вызова данной реализации в очереди сообщений уже стоят сообщения на создание всех столбцов DataGrid полученных из XML (conditions/parameters)
             //добавляем в очередь сообщение на создания столбца сортировки с целью всегда показать пользователю столбец по которому выполнена сортировка данных
-            this.BuildColumnInDataGrid(this.dgDevices.LastHeaderTextClicked, this.dgDevices.LastBindPathClicked);
-
-            /*
-            //показываем столбец комментариев к изделию
-            this.FQueueManager.Enqueue(
-                                        delegate
-                                        {
-                                            //отображаем столбец комментариев к изделию
-                                            this.CreateColumnForDeviceComments();
-
-                                            //прячем столбцы, которых не должно быть видно для выбранного пользователем типа изделия протокола сборки
-                                            string deviceType = (this.cmbDeviceType.SelectedItem == null) ? null : ((string[])this.cmbDeviceType.SelectedItem)[1];
-                                            this.SetColumnsVisibilityByDeviceType(deviceType);
-                                        }
-                                      );
-            */
+            this.BuildColumnInDataGrid(this.dgDevices.LastHeaderTextClicked, this.dgDevices.LastSourceFieldNameClicked);
         }
-
-        /*
-        private void SortColumnsInDataGrid()
-        {
-            //динамически созданные столбцы имеют в dgDevices начальный индекс Constants.StartConditionsParamersInDataGridIndex
-            //желаемая последовательность отображения столбцов в dgDevices определена пользователем следующим образом: Constants.ColumnSequences           
-            int columnIndex = Constants.StartConditionsParamersInDataGridIndex;
-
-            //идём по списку names и двигаем столбцы dgDevices в соответствии с порядком, заданным в Constants.OrderedColumnNames
-            foreach (string name in Constants.OrderedColumnNames)
-            {
-                //получаем список сортированных столбцов, header которых содержит строку name и header либо завершается строкой name, либо в header за name стоит целое число
-                var sortedColumns = from column in dgDevices.Columns
-                                    where column.Header.ToString().Contains(name) &&
-                                          ((column.Header.ToString().Substring(column.Header.ToString().IndexOf(name) + name.Length) == string.Empty) || int.TryParse(column.Header.ToString().Substring(column.Header.ToString().IndexOf(name) + name.Length), out int numbers))
-                                    orderby column.Header.ToString()
-                                    select column;
-
-                if (sortedColumns != null)
-                {
-                    foreach (DataGridColumn column in sortedColumns)
-                    {
-                        column.DisplayIndex = columnIndex;
-                        columnIndex++;
-                    }
-                }
-            }
-        }
-
-        public bool NeedCreateColumnForDeviceComments()
-        {
-            //отвечает на вопрос о необходимости создания столбца комментариев к изделиям
-            return Common.Routines.IsUserCanReadCreateComments(this.PermissionsLo) || Common.Routines.IsUserCanReadComments(this.PermissionsLo);
-        }
-
-        private void CreateColumnForDeviceComments()
-        {
-            //ставим столбец с комментариями к изделию после последнего сортированного столбца
-            if (this.NeedCreateColumnForDeviceComments())
-            {
-                //у пользователя есть права на работу с комментариями к изделиям, если он ещё не создан - создаём столбец для их отображения
-                //вычисляем индекс столбца комментариев к изделию в this.dgDevices
-                DataGridColumn lastXMLColumn = this.dgDevices.Columns.LastOrDefault(c => ((System.Windows.Data.Binding)((DataGridBoundColumn)c).Binding).Path.Path.Contains(SCME.Common.Constants.FromXMLNameSeparator));
-                int index = this.dgDevices.Columns.IndexOf(lastXMLColumn) + 1;
-
-                if (this.dgDevices.Columns[index] is DataGridBoundColumn column)
-                {
-                    bool deviceCommentsColumnExists = ((System.Windows.Data.Binding)column.Binding).Path.Path == Constants.DeviceComments;
-
-                    if (!deviceCommentsColumnExists)
-                        Routines.CreateColumnInDataGrid(this.dgDevices, index, Properties.Resources.DeviceComments, Constants.DeviceComments);
-                }
-            }
-        }
-        */
 
         private void SetColumnsVisibilityByDeviceTypeRu(string deviceTypeRu)
         {
@@ -2172,7 +2116,6 @@ namespace SCME.dbViewer
             string testTypeName = null;
             string subjectNameInDB = null;
             bool temperatureMode = false;
-            string columnName = null;
             SCME.Common.Routines.XMLValues subject;
             int index = 1;
 
@@ -2182,7 +2125,6 @@ namespace SCME.dbViewer
             if (this.FActiveFilters.Count > 0)
             {
                 byte comparison;
-                //string value;
 
                 this.FActiveFilters.Correct();
 
@@ -2250,41 +2192,36 @@ namespace SCME.dbViewer
             }
 
             //требуется сортировка данных
-            if (this.FActiveColumn != null)
+            if (!string.IsNullOrEmpty(this.FSortSourceFieldName))
             {
-                if (this.FActiveColumn.Binding is Binding bind)
+                //определяем с чем мы имеем дело: с conditions или parameters
+                subject = SCME.Common.Routines.SubjectByPath(this.FSortSourceFieldName);
+
+                if ((subject == Common.Routines.XMLValues.Conditions) || (subject == Common.Routines.XMLValues.Parameters) || (subject == Common.Routines.XMLValues.ManuallyParameters))
                 {
-                    columnName = bind.Path.Path;
+                    //имеем дело с Conditions/Parameters/ManuallyParameters
+                    index = Routines.EndingNumberFromValue(this.FSortSourceFieldName);
 
-                    //определяем с чем мы имеем дело: с conditions или parameters
-                    subject = SCME.Common.Routines.SubjectByPath(columnName);
+                    //считываем тип теста, он нужен только для Conditions/Parameters
+                    if ((subject == Common.Routines.XMLValues.Conditions) || (subject == Common.Routines.XMLValues.Parameters))
+                        testTypeName = SCME.Common.Routines.ExtractXMLTestFromPath(this.FSortSourceFieldName);
 
-                    if ((subject == Common.Routines.XMLValues.Conditions) || (subject == Common.Routines.XMLValues.Parameters) || (subject == Common.Routines.XMLValues.ManuallyParameters))
-                    {
-                        //имеем дело с Conditions/Parameters/ManuallyParameters
-                        index = Routines.EndingNumberFromValue(columnName);
+                    //считываем наименование условия/параметра как оно записано в базе данных по имени столбца
+                    subjectNameInDB = SCME.Common.Routines.ExtractXMLNameFromPath(this.FSortSourceFieldName);
 
-                        //считываем тип теста, он нужен только для Conditions/Parameters
-                        if ((subject == Common.Routines.XMLValues.Conditions) || (subject == Common.Routines.XMLValues.Parameters))
-                            testTypeName = SCME.Common.Routines.ExtractXMLTestFromPath(columnName);
-
-                        //считываем наименование условия/параметра как оно записано в базе данных по имени столбца
-                        subjectNameInDB = SCME.Common.Routines.ExtractXMLNameFromPath(columnName);
-
-                        //узнаём температурный режим выбранного для сортировки столбца
-                        temperatureMode = columnName.Substring(0, 2).ToUpper() != "RT";
-                    }
-                    else
-                        subjectNameInDB = columnName;
-
-                    //вычисляем направление сортировки
-                    bool direction = (this.dgDevices.LastSortedDirection == ListSortDirection.Ascending) ? false : true;
-
-                    //устанавливаем значение поля сортировки в кеше
-                    this.CacheSetOnDuty(subject, index, testTypeName, subjectNameInDB, temperatureMode, direction);
-
-                    //сортировка данных выполнена
+                    //узнаём температурный режим выбранного для сортировки столбца
+                    temperatureMode = this.FSortSourceFieldName.Substring(0, 2).ToUpper() != "RT";
                 }
+                else
+                    subjectNameInDB = this.FSortSourceFieldName;
+
+                //вычисляем направление сортировки
+                bool direction = (this.dgDevices.LastSortedDirection == ListSortDirection.Ascending) ? false : true;
+
+                //устанавливаем значение поля сортировки в кеше
+                this.CacheSetOnDuty(subject, index, testTypeName, subjectNameInDB, temperatureMode, direction);
+
+                //сортировка данных выполнена
             }
 
             return deletedSummCount;
@@ -2386,6 +2323,50 @@ namespace SCME.dbViewer
             this.BuildDevice();
         }
 
+        private void ApplyFilterByComboBoxSelection(object sender)
+        {
+            //применение фильтров в соответствии с выбранным пользователем значением в comboBox: cmbDUDt, cmbTrr, cmbTq, cmbTgt, cmbQrr
+
+            //не устанавливаем и не применяем фильтры по изменению выбранных значений в указанных comboBox в режиме протокола сборки
+            if (!this.AssemblyProtocolMode && (sender is ComboBox cmb))
+            {
+                //узнаём имя условия/параметра для формирования фильтра, тип фильтра, наименование фильтра для демонстрации пользователю
+                string fieldName = this.FilterFieldNameByComboBox(cmb, out string tittlefieldName, out string filterType, out string comparison);
+
+                if (!string.IsNullOrEmpty(fieldName))
+                {
+                    string value = this.SelectedValueFromComboBox(cmb);
+
+                    //если после открытия выпадающего списка ComboBox пользователь нажал клавишу Escape - выбранное значение будет null - проверим это
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        CustomControls.FilterDescription filter = null;
+
+                        bool keyCtrlPressed = Common.Routines.IsKeyCtrlPressed();
+
+                        if (!keyCtrlPressed)
+                        {
+                            //удаляем уже имеющийся фильтр по полю fieldName (их может быть либо ни одного, либо один единственный)
+                            filter = this.FActiveFilters.Where(f => f.FieldName == fieldName).FirstOrDefault();
+
+                            if (filter != null)
+                                this.FActiveFilters.Remove(filter);
+                        }
+
+                        //создаём и применяем фильтр по данным, которые выбрал пользователь в cmb
+                        filter = new CustomControls.FilterDescription(this.FActiveFilters, fieldName) { Type = filterType, TittlefieldName = tittlefieldName, Comparison = comparison, Value = value };
+                        this.FActiveFilters.Add(filter);
+
+                        //важно устанавливать флаг AcceptedToUse только после того, как filter будет добавлен в список this.FActiveFilters
+                        filter.AcceptedToUse = true;
+
+                        if (!keyCtrlPressed)
+                            this.ApplyFilters();
+                    }
+                }
+            }
+        }
+
         private void CmbSelectionChangedEventHandler(object sender, SelectionChangedEventArgs e)
         {
             //общий обработчик изменения выбранного значения в combobox которые формируют значение итогого изделия lbResult
@@ -2401,6 +2382,13 @@ namespace SCME.dbViewer
 
             if ((sender == this.cmbModification) || (sender == this.cmbDUDt) || (sender == this.cmbTrr) || (sender == this.cmbTq) || (sender == this.cmbTgt) || (sender == this.cmbClimatic))
                 this.BuildDevice();
+        }
+
+        private void CmbDropDownClosedEventHandler(object sender, EventArgs e)
+        {
+            //один и тот же обработчик для перечисленных ниже comboBox
+            if ((sender == this.cmbDUDt) || (sender == this.cmbTrr) || (sender == this.cmbTq) || (sender == this.cmbTgt) || (sender == this.cmbQrr))
+                this.ApplyFilterByComboBoxSelection(sender);
         }
 
         public void SetComboBoxSelected(ComboBox cmb, object cmbItem)
@@ -2431,7 +2419,25 @@ namespace SCME.dbViewer
             }
         }
 
-        private void PrepareHeadOfAssemblyProtocol(bool needSaveAssemblyProtocol, bool? deviceModeView, string assemblyJob, bool? export, int? deviceTypeID, string constructive, int? itav, string modification, int? deviceClass, int? dVdt, double? trr, string tq, double? tgt, int? qrr, string climatic, int? omnity)
+        private void ClearSelectedItemInComboBoxFilters()
+        {
+            if (this.cmbDUDt.SelectedItem != null)
+                this.SetComboBoxSelected(this.cmbDUDt, null);
+
+            if (this.cmbTrr.SelectedItem != null)
+                this.SetComboBoxSelected(this.cmbTrr, null);
+
+            if (this.cmbTq.SelectedItem != null)
+                this.SetComboBoxSelected(this.cmbTq, null);
+
+            if (this.cmbTgt.SelectedItem != null)
+                this.SetComboBoxSelected(this.cmbTgt, null);
+
+            if (this.cmbQrr.SelectedItem != null)
+                this.SetComboBoxSelected(this.cmbQrr, null);
+        }
+
+        private void PrepareHeadOfAssemblyProtocol(bool needSaveAssemblyProtocol, bool? deviceModeView, string assemblyJob, bool? export, int? deviceTypeID, string constructive, int? itav, string modification, int? deviceClass, int? dUdt, double? trr, string tq, double? tgt, int? qrr, string climatic, int? omnity)
         {
             //построение шапки протокола сборки
             //формируем значения в шапке протокола сборки
@@ -2468,9 +2474,9 @@ namespace SCME.dbViewer
             //класс изделия
             this.tbDeviceClass.Text = (deviceClass == null) ? string.Empty : deviceClass.ToString();
 
-            //dVdT
-            string sDVdt = (dVdt == null) ? string.Empty : dVdt.ToString();
-            GroupOfValues cmbItem = this.cmbDUDt.Items.OfType<GroupOfValues>().FirstOrDefault(x => x.Value == sDVdt);
+            //dUdt
+            string sdUdt = (dUdt == null) ? string.Empty : dUdt.ToString();
+            GroupOfValues cmbItem = this.cmbDUDt.Items.OfType<GroupOfValues>().FirstOrDefault(x => x.Value == sdUdt);
             this.SetComboBoxSelected(this.cmbDUDt, cmbItem);
 
             //trr
@@ -2536,7 +2542,7 @@ namespace SCME.dbViewer
             {
                 if (cacheItem != null)
                 {
-                    if (cacheItem.GetMember("ASSEMBLYPROTOCOLID", out object assemblyProtocolID))
+                    if (cacheItem.GetMember(Common.Constants.AssemblyProtocolID, out object assemblyProtocolID))
                     {
                         string sAssemblyProtocolID = Routines.RemoveEmptyValuesAndDuplicates(assemblyProtocolID.ToString());
 
@@ -2562,7 +2568,7 @@ namespace SCME.dbViewer
                 int? itav = null;
                 string modification = null;
                 int? deviceClass = null;
-                int? dVdt = null;
+                int? dUdt = null;
                 double? trr = null;
                 string tq = null;
                 double? tgt = null;
@@ -2587,10 +2593,10 @@ namespace SCME.dbViewer
 
                     if ((assemblyProtocolID != null) && (assemblyProtocolID > 0))
                     {
-                        DbRoutines.LoadAssemblyProtocol((int)assemblyProtocolID, out deviceModeView, out assemblyJob, out export, out deviceTypeID, out itav, out modification, out constructive, out deviceClass, out dVdt, out trr, out tq, out tgt, out qrr, out climatic, out omnity);
+                        DbRoutines.LoadAssemblyProtocol((int)assemblyProtocolID, out deviceModeView, out assemblyJob, out export, out deviceTypeID, out itav, out modification, out constructive, out deviceClass, out dUdt, out trr, out tq, out tgt, out qrr, out climatic, out omnity);
 
                         //смотрим сохранил ли пользователь хотя-бы один реквизит протокола испытаний
-                        allRequisitesAreEmpty = string.IsNullOrEmpty(assemblyJob) && (deviceTypeID == null) && (itav == null) && (modification == null) && (constructive == null) && (deviceClass == null) && (dVdt == null) && (trr == null) && string.IsNullOrEmpty(tq) && (tgt == null) && (qrr == null) && string.IsNullOrEmpty(climatic) && (omnity == null);
+                        allRequisitesAreEmpty = string.IsNullOrEmpty(assemblyJob) && (deviceTypeID == null) && (itav == null) && (modification == null) && (constructive == null) && (deviceClass == null) && (dUdt == null) && (trr == null) && string.IsNullOrEmpty(tq) && (tgt == null) && (qrr == null) && string.IsNullOrEmpty(climatic) && (omnity == null);
 
                         if (allRequisitesAreEmpty)
                         {
@@ -2609,29 +2615,29 @@ namespace SCME.dbViewer
                             }
 
                             //вычисляем самый часто используемый конструктив изделий, хранящихся в кеше
-                            constructive = Routines.MostPopularValue(cacheData, "CONSTRUCTIVE");
+                            constructive = Routines.MostPopularValue(cacheData, Common.Constants.Constructive);
 
                             //вычисляем самый часто используемый средний ток изделий, хранящихся в кеше
-                            if (int.TryParse(Routines.MostPopularValue(cacheData, "AVERAGECURRENT"), out int iItav))
+                            if (int.TryParse(Routines.MostPopularValue(cacheData, Common.Constants.AverageCurrent), out int iItav))
                                 itav = iItav;
 
                             //вычисляем самую часто используемую модификацию, хранящихся в кеше (в кеше нет этого поля)
                             //modification = Routines.MostPopularValue(cacheData, "MODIFICATION");
 
                             //вычисляем минимальное значение класса для списка изделий, хранящихся в кеше
-                            if (int.TryParse(Routines.MinValue(cacheData, "DEVICECLASS"), out int iDeviceClass))
+                            if (int.TryParse(Routines.MinValue(cacheData, Common.Constants.DeviceClass), out int iDeviceClass))
                                 deviceClass = iDeviceClass;
 
                             //вычисляем минимальное значение DVDT_VoltageRate для списка изделий, хранящихся в кеше
-                            if (int.TryParse(Routines.MinCPValue(cacheData, "DVDT_VoltageRate"), out int iDVdt))
-                                dVdt = iDVdt;
+                            if (int.TryParse(Routines.MinCPValue(cacheData, "DVDT_VoltageRate"), out int idUdt))
+                                dUdt = idUdt;
 
                             //вычисляем максимальное значение TRR для списка изделий, хранящихся в кеше
-                            if (double.TryParse(Routines.MaxCPValue(cacheData, "TRR"), out double dTrr))
+                            if (double.TryParse(Routines.MaxCPValue(cacheData, Common.Constants.Trr), out double dTrr))
                                 trr = dTrr;
 
                             //вычисляем максимальное значение TQ для списка изделий, хранящихся в кеше
-                            tq = Routines.MaxCPValue(cacheData, "TQ");
+                            tq = Routines.MaxCPValue(cacheData, Common.Constants.Tq);
 
                             //вычисляем максимальное значение TOU_TGT для списка изделий, хранящихся в кеше
                             if (double.TryParse(Routines.MaxCPValue(cacheData, "TOU_TGT"), out double dTgt))
@@ -2641,7 +2647,7 @@ namespace SCME.dbViewer
                             qrr = Routines.CalcQrr(deviceTypeRu, constructive, itav);
 
                             //вычисляем самый часто используемый климат, хранящихся в кеше (в кеше нет этого поля)
-                            //climatic = Routines.MostPopularValue(cacheData, "CLIMATIC");
+                            //climatic = Routines.MostPopularValue(cacheData, Common.Constants.Climatic);
 
                             //вычисляем самое часто используемое значение Omnity (в кеше нет этого поля)
                             if (int.TryParse(Routines.MostPopularValue(cacheData, "SIOMNITY"), out int iSiOmnity))
@@ -2654,7 +2660,7 @@ namespace SCME.dbViewer
                                             delegate
                                             {
                                                 //если все реквизиты протокола сборки пусты и система вычислила самые популярные значения - вызываемая реализация должна выполнить сохранение протокола сборки
-                                                this.PrepareHeadOfAssemblyProtocol(allRequisitesAreEmpty, deviceModeView, assemblyJob, export, deviceTypeID, constructive, itav, modification, deviceClass, dVdt, trr, tq, tgt, qrr, climatic, omnity);
+                                                this.PrepareHeadOfAssemblyProtocol(allRequisitesAreEmpty, deviceModeView, assemblyJob, export, deviceTypeID, constructive, itav, modification, deviceClass, dUdt, trr, tq, tgt, qrr, climatic, omnity);
                                             }
                                           );
             }
@@ -2669,7 +2675,7 @@ namespace SCME.dbViewer
 
             //режим просмотра протокола сборки включён - значит на данный момент в системе активен один фильтр по протоколу сборки
             //считываем из этого фильтра обозначение протокола сборки и вычисляем по нему его идентификатор
-            IEnumerable<FilterDescription> filters = this.FActiveFilters.Where(f => f.FieldName == "ASSEMBLYPROTOCOLDESCR");
+            IEnumerable<FilterDescription> filters = this.FActiveFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr);
 
             if (filters.Count() != 0)
             {
@@ -2727,7 +2733,7 @@ namespace SCME.dbViewer
         }
 
         #region Filters
-        private string DataTypeByColumn(DataGridBoundColumn column, out string fieldName)
+        private string DataTypeByColumn(DataGridColumn column, out string sourceFieldName)
         {
             //определение типа данных, отображаемых в столбце column
             //судить о типе всех данных по порции данных нельзя - в порции данных может не быть ни одного значения, тип данных не вычислим - поэтому никак не используем данные для вычисления их типа
@@ -2735,31 +2741,31 @@ namespace SCME.dbViewer
             string result = null;
 
             Common.Routines.XMLValues subject = Common.Routines.XMLValues.UnAssigned;
-            fieldName = null;
+            sourceFieldName = null;
 
-            if ((column != null) && (column.Binding is Binding bind))
+            if (column != null)
             {
                 //определяем с чем мы имеем дело: с conditions или parameters
-                fieldName = bind.Path.Path;
-                subject = Common.Routines.SubjectByPath(fieldName);
+                sourceFieldName = column.SortMemberPath;
+                subject = Common.Routines.SubjectByPath(sourceFieldName);
 
                 switch (subject)
                 {
-                    case SCME.Common.Routines.XMLValues.UnAssigned:
-                        switch (fieldName)
+                    case Common.Routines.XMLValues.UnAssigned:
+                        switch (sourceFieldName)
                         {
-                            case "TS":
+                            case Common.Constants.Ts:
                                 result = "System.DateOnly";
                                 break;
 
-                            case "CHOICE":
-                            case "SAPID":
+                            case Common.Constants.Choice:
+                            case Common.Constants.SapID:
                                 result = typeof(bool).FullName;
                                 break;
 
-                            case "ASSEMBLYPROTOCOLDESCR":
-                            case "AVERAGECURRENT":
-                            case "DEVICECLASS":
+                            case Common.Constants.AssemblyProtocolDescr:
+                            case Common.Constants.AverageCurrent:
+                            case Common.Constants.DeviceClass:
                                 result = typeof(int).FullName;
                                 break;
 
@@ -2792,7 +2798,7 @@ namespace SCME.dbViewer
             //отвечает на вопрос о включенном режиме просмотра содержимого протокола испытаний
             //true - включен режим просмотра содержимого протокола испытаний
             //false - режим просмотра содержимого протокола испытаний выключен
-            return (this.FActiveFilters.FirstOrDefault(f => f.FieldName == "ASSEMBLYPROTOCOLDESCR") != null);
+            return (this.FActiveFilters.FirstOrDefault(f => f.FieldName == Common.Constants.AssemblyProtocolDescr) != null);
         }
         */
 
@@ -2812,13 +2818,13 @@ namespace SCME.dbViewer
             this.RefreshShowingData();
         }
 
-        private void SetFilter(Point position, DataGridBoundColumn column, string tittlefieldName)
+        private void SetFilter(Point position, System.Windows.Controls.Primitives.DataGridColumnHeader columnHeader)
         {
             if (this.dgDevices.ItemsSource != null)
             {
-                string filterType = this.DataTypeByColumn(column, out string bindPath);
+                string filterType = this.DataTypeByColumn(columnHeader.Column, out string sourceFieldName);
 
-                CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, bindPath) { Type = filterType, TittlefieldName = tittlefieldName, Comparison = "=", Value = this.dgDevices.ValueFromSelectedRow(bindPath) };
+                CustomControls.FilterDescription filter = new CustomControls.FilterDescription(this.FActiveFilters, sourceFieldName) { Type = filterType, TittlefieldName = columnHeader.Content.ToString(), Comparison = "=", Value = this.dgDevices.ValueFromSelectedRow(sourceFieldName) };
                 //this.LoadListOfValues(filter.ListOfValues, bindPath);
 
                 this.FActiveFilters.Add(filter);
@@ -2830,13 +2836,90 @@ namespace SCME.dbViewer
             }
         }
 
+        private string FilterFieldNameByComboBox(ComboBox cmb, out string tittlefieldName, out string filterType, out string comparison)
+        {
+            //возвращает как результат имя условия/параметра для выполнения фильтрации, соответствующее принятому cmb (cmbDUDt, cmbTrr, cmbTq, cmbTgt, cmbQrr)
+            //пример: TMDvdtConditions©DVDT_VoltageRate, где
+            //        TM - горячий;
+            //        Dvdt - наименование теста;
+            //        Conditions - имеем дело с условием теста;
+            //        DVDT_VoltageRate - наименование условия
+            //в out tittlefieldName возвращает имя фильтра для демонстрации пользователю
+            //в out filterType возвращает тип фильтра для выполнения фильтрации
+
+            if (cmb != null)
+            {
+                switch (cmb.Name)
+                {
+                    case "cmbDUDt":
+                        //всегда горячий
+                        //условие
+                        tittlefieldName = string.Concat("TM/Dvdt", Constants.StringDelimeter, Common.Constants.DUdt);
+                        filterType = typeof(string).FullName;
+                        comparison = "=";
+
+                        return "TMDvdtConditions©DVDT_VoltageRate";
+
+                    case "cmbTrr":
+                        //всегда горячий
+                        //параметр
+                        tittlefieldName = string.Concat("TM/QrrTq", Constants.StringDelimeter, "Qrr");
+                        filterType = typeof(double).FullName;
+                        comparison = "<=";
+
+                        return "TMQrrTqParameters©TRR";
+
+                    case "cmbTq":
+                        //всегда горячий
+                        //параметр
+                        tittlefieldName = string.Concat("TM/QrrTq", Constants.StringDelimeter, "Tq");
+                        filterType = typeof(double).FullName;
+                        comparison = "<=";
+
+                        return "TMQrrTqParameters©TQ";
+
+                    case "cmbTgt":
+                        //всегда холодный
+                        //параметр
+                        //на момент разработки не измеряется средствами КИПП СПП
+                        tittlefieldName = string.Concat("RT/TOU", Constants.StringDelimeter, "Tgt");
+                        filterType = typeof(double).FullName;
+                        comparison = "<=";
+
+                        return "RTTOUParameters©TOU_TGT";
+
+                    case "cmbQrr":
+                        //всегда горячий
+                        //параметр
+                        tittlefieldName = string.Concat("TM/QrrTq", Constants.StringDelimeter, "Qrr");
+                        filterType = typeof(double).FullName;
+                        comparison = "<=";
+
+                        return "TMQrrTqParameters©QRR";
+
+                    default:
+                        tittlefieldName = null;
+                        filterType = null;
+                        comparison = null;
+
+                        return null;
+                }
+            }
+
+            tittlefieldName = null;
+            filterType = null;
+            comparison = null;
+
+            return null;
+        }
+
         private void OnChangedListOfFiltersHandler(IEnumerable<CustomControls.FilterDescription> actualFilters)
         {
             //не существует единственного фильтра по полю 'ASSEMBLYPROTOCOLDESCR' с типом сравнения '='
             if (this.AssemblyProtocolMode)
             {
                 //данная реализация будет вызвана сразу после изменения списка действующих фильтров
-                int countOfFiltersByAssemblyProtocolDescr = actualFilters.Where(f => f.FieldName == "ASSEMBLYPROTOCOLDESCR").Count();
+                int countOfFiltersByAssemblyProtocolDescr = actualFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr).Count();
 
                 //проверяем два возможных варианта описания фильтра:
                 //один или несколько фильтров по протоколу сборки;
@@ -2921,7 +3004,7 @@ namespace SCME.dbViewer
                 }
 
                 //если фильтр по протоколу сборки (в единственном числе) активен - разрешаем пользователю включить режим просмотра протокола сборки
-                IEnumerable<CustomControls.FilterDescription> filters = this.FActiveFilters.Where(f => f.FieldName == "ASSEMBLYPROTOCOLDESCR");
+                IEnumerable<CustomControls.FilterDescription> filters = this.FActiveFilters.Where(f => f.FieldName == Common.Constants.AssemblyProtocolDescr);
 
                 if (filters == null)
                 {
@@ -3044,11 +3127,11 @@ namespace SCME.dbViewer
                                     deviceClass = iDeviceClass;
                             }
 
-                            int? dVdT = null;
-                            if (cmbDUDt.SelectedItem is GroupOfValues selDUDt)
+                            int? dUdt = null;
+                            if (cmbDUDt.SelectedItem is GroupOfValues seldUdt)
                             {
-                                if (int.TryParse(selDUDt.Value, out int iDVDT))
-                                    dVdT = iDVDT;
+                                if (int.TryParse(seldUdt.Value, out int idUdt))
+                                    dUdt = idUdt;
                             }
 
                             double? trr = null;
@@ -3084,7 +3167,7 @@ namespace SCME.dbViewer
                             if (int.TryParse(tbOmnity.Text, out int iOmnity))
                                 omnity = iOmnity;
 
-                            DbRoutines.UpdateAssemblyProtocols((int)assemblyProtocolID, cbDeviceModeView.IsChecked ?? false, assemblyJob, export, deviceTypeID, itav, modification, tbConstructive.Text, deviceClass, dVdT, trr, tq, tgt, qrr, climatic, omnity);
+                            DbRoutines.UpdateAssemblyProtocols((int)assemblyProtocolID, cbDeviceModeView.IsChecked ?? false, assemblyJob, export, deviceTypeID, itav, modification, tbConstructive.Text, deviceClass, dUdt, trr, tq, tgt, qrr, climatic, omnity);
 
                             //раз мы сюда добрались - сохранение выполнено успешно                           
                             return null;
@@ -3147,7 +3230,7 @@ namespace SCME.dbViewer
                         Owner = this
                     };
 
-                    object obj = this.dgDevices.ValueFromSelectedRow("ASSEMBLYPROTOCOLDESCR");
+                    object obj = this.dgDevices.ValueFromSelectedRow(Common.Constants.AssemblyProtocolDescr);
 
                     if (obj != null)
                     {
@@ -3287,10 +3370,10 @@ namespace SCME.dbViewer
                                 if (this.cmbQrr.SelectedItem is QrrGroupOfValues groupOfValuesQrr)
                                     qrr = groupOfValuesQrr.Value;
 
-                                //считываем значение dVdT
-                                string dVdT = null;
-                                if (this.cmbDUDt.SelectedItem is GroupOfValues groupOfValuesDVdT)
-                                    dVdT = groupOfValuesDVdT.TrueValue;
+                                //считываем значение dUdt
+                                string dUdt = null;
+                                if (this.cmbDUDt.SelectedItem is GroupOfValues groupOfValuesdUdt)
+                                    dUdt = groupOfValuesdUdt.TrueValue;
 
                                 //считываем значение Tgt
                                 string tgt = null;
@@ -3300,7 +3383,7 @@ namespace SCME.dbViewer
                                 //идентификатор отображаемого протокола сборки нужен для фильтрации исходных данных
                                 //в этом случае формирования отчёта он нам не нужен - в кеше и так могут быть только такие записи, которые уже отфильтрованы по номеру протокола сборки
                                 //параметр assemblyProtocolID в реализации AssemblyProtocolReport.Build нужен только для случая вызова из списка отображаемых протоколов сборки - там нет фильтрации по протоколу сборки
-                                AssemblyProtocolReport.Build(-1, this.SaveAssemblyProtocol, cacheSize, assemblyJob, this.lbDevice.Content.ToString(), deviceTypeRU, this.tbOmnity.Text, tq, trr, qrr, dVdT, tgt, itav, deviceTypeID, constructive, modification, this.tbDeviceClass.Text);
+                                AssemblyProtocolReport.Build(-1, this.SaveAssemblyProtocol, cacheSize, assemblyJob, this.lbDevice.Content.ToString(), deviceTypeRU, this.tbOmnity.Text, tq, trr, qrr, dUdt, tgt, itav, deviceTypeID, constructive, modification, this.tbDeviceClass.Text);
                                 break;
 
                             default:
@@ -3323,6 +3406,125 @@ namespace SCME.dbViewer
         {
             SCME.Common.Routines.KillProcessWaitVisualizer(this.ProcessWaitVisualizerHWnd);
         }
+
+        private void TextBoxDeviceCommentsTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tbDeviceComments)
+                this.FTextBoxDeviceCommentsTextChanged = true;
+        }
+
+        private int[] DevIDsByTextBoxDeviceComments(TextBox tbDeviceComments)
+        {
+            int[] devIDArray = null;
+
+            if ((tbDeviceComments != null) && (tbDeviceComments.DataContext is SCME.CustomControls.DynamicObj dynamicObj))
+            {
+                dynamicObj.GetMember(Common.Constants.DevID, out object devIDs);
+                devIDArray = ObjectToArrayOfInt(devIDs);
+            }
+
+            return devIDArray;
+        }
+
+        private void SaveComments(int[] devIDArray, string comments)
+        {
+            try
+            {
+                //сохраняем в базу данных введённый пользователем комментарий для всех элементов группы
+                if (devIDArray != null)
+                {
+                    foreach (int devID in devIDArray)
+                    {
+                        DbRoutines.SaveToDeviceComment(devID, this.FUserID, comments);
+                    }
+                }
+            }
+            finally
+            {
+                this.FTextBoxDeviceCommentsTextChanged = false;
+            }
+        }
+
+        private void TextBoxDeviceCommentsLostFocus(object sender, RoutedEventArgs e)
+        {
+            //выполняем сохранение введённого пользователем комментария
+            if (sender is TextBox tbDeviceComments)
+            {
+                if (this.FTextBoxDeviceCommentsTextChanged && !tbDeviceComments.IsReadOnly)
+                {
+                    int[] devIDArray = this.DevIDsByTextBoxDeviceComments(tbDeviceComments);
+                    this.SaveComments(devIDArray, tbDeviceComments.Text);
+                }
+            }
+        }
+
+        private void ContextMenuDeviceCommentsEdit_Click(object sender, RoutedEventArgs e)
+        {
+            //вызываем редактор комментариев
+
+            IInputElement parent = (IInputElement)LogicalTreeHelper.GetParent((DependencyObject)sender);
+
+            if ((parent is ContextMenu cm) && (cm.PlacementTarget is TextBox tbDeviceComments))
+            {
+                //если пользователь отредактировал комментарий средствами формы this и не выходя из поля комментария откроет его контекстное меню - событие потери фокуса полем комментария не отработает, поэтому выполним сохранение комментария, чтобы форма WorkWithComments прочитала его из базы данных в актуальном состоянии
+                int[] devIDArray = this.DevIDsByTextBoxDeviceComments(tbDeviceComments);
+
+                if (this.FTextBoxDeviceCommentsTextChanged)
+                    this.SaveComments(devIDArray, tbDeviceComments.Text);
+
+                this.WorkWithCommentsShowModalForSelectedRow(devIDArray);
+            }
+        }
+
+        private void DataGridCellEditByTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if ((this.dgDevices.Items.Count != 0) && (sender is DataGridCell cell) && (e.OriginalSource is UIElement uiElement))
+            {
+                DataGridRow currentRow = DataGridRow.GetRowContainingElement(cell);
+
+                if (currentRow != null)
+                {
+                    int currentRowIndex = currentRow.GetIndex();
+
+                    switch (e.Key)
+                    {
+                        //технологи хотят двигаться вниз по списку по нажатию на клавишу Enter
+                        case Key.Down:
+                        case Key.Enter:
+                            int nextRowIndex = currentRowIndex + 1;
+                            DataGridCellInfo nextCell = new DataGridCellInfo(this.dgDevices.Items[nextRowIndex], this.dgDevices.Columns[cell.Column.DisplayIndex]);
+
+                            this.dgDevices.SelectedIndex = nextRowIndex;
+                            this.dgDevices.CurrentCell = nextCell;
+                            this.dgDevices.SelectedCells.Clear();
+                            this.dgDevices.SelectedCells.Add(nextCell);
+                            uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Down));
+
+                            e.Handled = true;
+                            break;
+
+                        case Key.Up:
+                            if (currentRowIndex > 0)
+                            {
+                                int previousRowIndex = currentRowIndex - 1;
+                                DataGridCellInfo previousCell = new DataGridCellInfo(this.dgDevices.Items[previousRowIndex], this.dgDevices.Columns[cell.Column.DisplayIndex]);
+
+                                this.dgDevices.SelectedIndex = previousRowIndex;
+                                this.dgDevices.CurrentCell = previousCell;
+                                this.dgDevices.SelectedCells.Clear();
+                                this.dgDevices.SelectedCells.Add(previousCell);
+                                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Up));
+                            }
+
+                            e.Handled = true;
+                            break;
+                    }
+                }
+            }
+        }
+
+
+
 
 
 

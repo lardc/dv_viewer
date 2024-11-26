@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Data;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using SCME.Types;
 
@@ -48,15 +49,15 @@ namespace SCME.dbViewer
 
             if (Common.Routines.IsUserCanReadCreateComments(main.PermissionsLo))
             {
-                lbComment.Visibility = Visibility.Visible;
-                tbComment.Visibility = Visibility.Visible;
-                BtOk.Visibility = Visibility.Visible;
+                this.lbComment.Visibility = Visibility.Visible;
+                this.tbComment.Visibility = Visibility.Visible;
+                this.BtOk.Visibility = Visibility.Visible;
             }
             else
             {
-                lbComment.Visibility = Visibility.Collapsed;
-                tbComment.Visibility = Visibility.Collapsed;
-                BtOk.Visibility = Visibility.Collapsed;
+                this.lbComment.Visibility = Visibility.Collapsed;
+                this.tbComment.Visibility = Visibility.Collapsed;
+                this.BtOk.Visibility = Visibility.Collapsed;
             }
 
             bool? result = this.ShowDialog();
@@ -87,7 +88,7 @@ namespace SCME.dbViewer
                 DbRoutines.SaveToDeviceComment(devID, ((MainWindow)this.Owner).FUserID, this.tbComment.Text);
             }
 
-            this.tbComment.Clear();
+            //this.tbComment.Clear();
 
             this.FWasSaved = true;
 
@@ -98,6 +99,18 @@ namespace SCME.dbViewer
         {
             if (e.Key == Key.Escape)
                 this.DialogResult = false;
+        }
+
+        private void DgDeviceComments_LoadingRow(object sender, DataGridRowEventArgs e)
+        {
+            //загружаем сделанный пользователем комментарий для возможности его редактирования из записи с индексом 0
+            //(комментарий устанавливается на группу измерений, группа состоит из нескольких измерений, комментарий на каждое измерение из группы один и тот же)
+            //данное событие не наступит если для группы нет ни одной записи в таблице DeviceComments
+            //поле DeviceComments.COMMENTS объявлено NOT NULL
+            DataGridRow row = e.Row;
+
+            if ((row.GetIndex() == 0) && (row.DataContext is DataRowView dv))
+                this.tbComment.Text = dv.Row["COMMENTS"].ToString();
         }
     }
 }

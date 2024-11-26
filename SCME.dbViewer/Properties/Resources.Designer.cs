@@ -332,6 +332,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cut.
+        /// </summary>
+        public static string Cut {
+            get {
+                return ResourceManager.GetString("Cut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The entered data contains an error..
         /// </summary>
         public static string DataContainsAnError {
@@ -612,11 +621,20 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to dVdT.
+        ///   Looks up a localized string similar to dU/dt.
         /// </summary>
-        public static string dVdT {
+        public static string dUdt {
             get {
-                return ResourceManager.GetString("dVdT", resourceCulture);
+                return ResourceManager.GetString("dUdt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to dU/dtMin.
+        /// </summary>
+        public static string dUdtMin {
+            get {
+                return ResourceManager.GetString("dUdtMin", resourceCulture);
             }
         }
         
@@ -761,6 +779,15 @@ namespace SCME.dbViewer.Properties {
         public static string InAssemblyProtocol {
             get {
                 return ResourceManager.GetString("InAssemblyProtocol", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to IrrmMax.
+        /// </summary>
+        public static string IrrmMax {
+            get {
+                return ResourceManager.GetString("IrrmMax", resourceCulture);
             }
         }
         
@@ -1134,6 +1161,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Paste.
+        /// </summary>
+        public static string Paste {
+            get {
+                return ResourceManager.GetString("Paste", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Please authenticate..
         /// </summary>
         public static string PleaseAuthenticate {
@@ -1314,6 +1350,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Records:.
+        /// </summary>
+        public static string Records {
+            get {
+                return ResourceManager.GetString("Records", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Record successfully deleted.
         /// </summary>
         public static string RecordSuccessfullyDeleted {
@@ -1364,6 +1409,15 @@ namespace SCME.dbViewer.Properties {
         public static string ReportCannotBeGenerated {
             get {
                 return ResourceManager.GetString("ReportCannotBeGenerated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to RisolMin.
+        /// </summary>
+        public static string RisolMin {
+            get {
+                return ResourceManager.GetString("RisolMin", resourceCulture);
             }
         }
         
@@ -1575,15 +1629,6 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shown records: .
-        /// </summary>
-        public static string ShownRecords {
-            get {
-                return ResourceManager.GetString("ShownRecords", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Omnity.
         /// </summary>
         public static string SiOmnity {
@@ -1665,6 +1710,15 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to TgtMax.
+        /// </summary>
+        public static string TgtMax {
+            get {
+                return ResourceManager.GetString("TgtMax", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to TjMax.
         /// </summary>
         public static string TjMax {
@@ -1683,11 +1737,29 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to TqMin.
+        /// </summary>
+        public static string TqMin {
+            get {
+                return ResourceManager.GetString("TqMin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to trr.
         /// </summary>
         public static string trr {
             get {
                 return ResourceManager.GetString("trr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TrrMin.
+        /// </summary>
+        public static string TrrMin {
+            get {
+                return ResourceManager.GetString("TrrMin", resourceCulture);
             }
         }
         
@@ -1701,11 +1773,38 @@ namespace SCME.dbViewer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to UbrMin.
+        /// </summary>
+        public static string UbrMin {
+            get {
+                return ResourceManager.GetString("UbrMin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UdsmMin.
+        /// </summary>
+        public static string UdsmMin {
+            get {
+                return ResourceManager.GetString("UdsmMin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to UgtMax.
         /// </summary>
         public static string UgtMax {
             get {
                 return ResourceManager.GetString("UgtMax", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UisolMin.
+        /// </summary>
+        public static string UisolMin {
+            get {
+                return ResourceManager.GetString("UisolMin", resourceCulture);
             }
         }
         
@@ -1742,6 +1841,15 @@ namespace SCME.dbViewer.Properties {
         public static string UnSelectAllRecords {
             get {
                 return ResourceManager.GetString("UnSelectAllRecords", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UrsmMin.
+        /// </summary>
+        public static string UrsmMin {
+            get {
+                return ResourceManager.GetString("UrsmMin", resourceCulture);
             }
         }
         

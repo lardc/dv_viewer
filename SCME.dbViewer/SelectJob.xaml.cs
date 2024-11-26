@@ -82,7 +82,7 @@ namespace SCME.dbViewer
                     string groupName = selectedGroupName;
 
                     DataRowView row = dt.DefaultView.OfType<DataRowView>()
-                                      .Where(x => x.Row.Field<string>("GROUP_NAME").Contains(groupName))
+                                      .Where(x => x.Row.Field<string>(Common.Constants.GroupName).Contains(groupName))
                                       .FirstOrDefault();
 
                     if (row != null)
@@ -163,10 +163,10 @@ namespace SCME.dbViewer
             if (dgGroupNames.CurrentItem is DataRowView currentItem)
             {
                 object[] itemArray = currentItem.Row.ItemArray;
-                int columnIndex = currentItem.Row.Table.Columns.IndexOf("GROUP_NAME");
+                int columnIndex = currentItem.Row.Table.Columns.IndexOf(Common.Constants.GroupName);
                 this.SelectedGroupName = itemArray[columnIndex].ToString();
 
-                columnIndex = currentItem.Row.Table.Columns.IndexOf("ITEM");
+                columnIndex = currentItem.Row.Table.Columns.IndexOf(Common.Constants.Item);
                 this.SelectedItem = itemArray[columnIndex].ToString();
             }
         }
