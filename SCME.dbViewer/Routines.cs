@@ -20,6 +20,7 @@ namespace SCME.dbViewer
     public static class Routines
     {
         public const string PartOfAssemblyProtocolFileName = "AssemblyReport";
+        public const string PartOfCasualReportFileName = "CasualReport";
 
         public static string User()
         {
@@ -63,7 +64,7 @@ namespace SCME.dbViewer
             return false;
         }
 
-        public static void ClearOldAssemblyReports(string path, string partOfName)
+        public static void ClearOldReports(string path, string partOfName)
         {
             //удаление файлов в директории path при условии, что имя файла содержит partOfName
 
@@ -1537,7 +1538,7 @@ namespace SCME.dbViewer
                                 {
                                     switch (subject)
                                     {
-                                        case (Common.Routines.XMLValues.Conditions):
+                                        case Common.Routines.XMLValues.Conditions:
                                             //читаем список условий, которые надо показать
                                             List<string> conditions = ConditionNamesByDeviceTypeRu(testType, deviceTypeRu, tc);
 
@@ -1566,7 +1567,7 @@ namespace SCME.dbViewer
 
                                             break;
 
-                                        case (Common.Routines.XMLValues.Parameters):
+                                        case Common.Routines.XMLValues.Parameters:
                                             //строим список измеренных параметров, которые надо показать
                                             List<string> measuredParameters = MeasuredParametersByTestType(testType);
 
@@ -1577,11 +1578,14 @@ namespace SCME.dbViewer
                                             {
                                                 value = attributes["Value"].Value;
 
-                                                //значения измеренных параметров - всегда числа с плавающей запятой. если это не так - ругаемся
+                                                //значения измеренных параметров - всегда должны преобразовываться к числу с плавающей запятой. если это не так - ругаемся
                                                 if (!ValueAsDouble(value, out double dValue))
                                                     throw new Exception(string.Format("При чтении значения измеренного параметра '{0}' из XML описания оказалось, что его значение '{1}' не преобразуется к типу Double.", name, value));
 
-                                                value = dValue.ToString();
+                                                //округляем до второго знака значения параметров (в том числе и созданных вручную)
+                                                //при этом если значение параметра записано целым числом - оно таковым и останется
+                                                value = Math.Round(dValue, 2).ToString();
+
                                                 newColumnDataType = typeof(double);
                                                 factColumnDataType = newColumnDataType;
 

@@ -71,7 +71,7 @@ namespace OpenXml
 
             //создаём стиль по умолчанию, который будет применятся к ячейке без установки индекса стиля
             //в этом стиле все индексы могут ссылаться только на нулевые ID, другие значения стиль по умолчанию игнорирует
-            CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+            CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
             //создаём зарезервированное значение заливки - в Fills оно будет иметь индекс 2
             StyleObjects(spreadsheetDocument, out Fonts fonts, out Fills fills, out Borders borders, out CellFormats cellFormats);
@@ -85,7 +85,7 @@ namespace OpenXml
             return spreadsheetDocument;
         }
 
-        public static Sheet CreateSheet(SpreadsheetDocument spreadsheetDocument, string sheetName)
+        public static Worksheet CreateSheet(SpreadsheetDocument spreadsheetDocument, string sheetName)
         {
             //добавляем WorksheetPart в WorkbookPart
             WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.AddNewPart<WorksheetPart>();
@@ -103,7 +103,37 @@ namespace OpenXml
             //добавляем созданный лист в список листов
             spreadsheetDocument.WorkbookPart.Workbook.Sheets.Append(sheet);
 
-            return sheet;
+            return worksheetPart.Worksheet;
+        }
+
+        public static void CreateHeaderFooter(Worksheet worksheetsheet, string headerText, string footerText)
+        {
+            if (worksheetsheet != null)
+            {
+                HeaderFooter headerFooter = null;
+
+                if (!string.IsNullOrEmpty(headerText))
+                {
+                    headerFooter = new HeaderFooter();
+
+                    OddHeader oddHeader = new OddHeader(headerText);
+                    headerFooter.AddChild(oddHeader);
+                }
+
+                if (!string.IsNullOrEmpty(footerText))
+                {
+                    if (headerFooter == null)
+                        headerFooter = new HeaderFooter();
+
+                    //OddFooter oddFooter = new OddFooter("&L&\"Times New Roman,Regular\"Page &P of &N&C&\"Times New Roman,Regular\"Generated On: &D Central&R&\"Times New Roman,Regular\"Report"); //"&L&\"Лист &P, листов &N"
+                    OddFooter oddFooter = new OddFooter(footerText);
+                    
+                    headerFooter.AddChild(oddFooter);
+                }
+
+                if (headerFooter != null)
+                    worksheetsheet.Append(headerFooter);
+            }
         }
 
         private static int InsertSharedStringItem(SpreadsheetDocument spreadsheetDocument, string value)
@@ -190,7 +220,7 @@ namespace OpenXml
         {
             //пересчитываем пиксели в ширину Excel: https://stackoverflow.com/questions/7716078/formula-to-convert-net-pixels-to-excel-width-in-openxml-format/7902415
             //double openXmlWidth = 1 + (size.Width - 9) / 7f;
-            return 0.4 + Math.Truncate(width / 7 * 256) / 256;
+            return 0.4 + Math.Truncate(width / 6.12 * 256) / 256;
         }
 
         private static double HeightToOpenXml(double height)
@@ -490,7 +520,7 @@ namespace OpenXml
                     {
                         //необходимо добавить созданную ячейку так, чтобы она заняла своё положение в row в соответствии со своим CellReference
                         uint columnNumberReference = ColumnNameToNumber(GetColumnName(cellReference));
-                        
+
                         cells = row.Elements<Cell>().Where(c => ColumnNameToNumber(GetColumnName(c.CellReference.Value)) > columnNumberReference);
 
                         if (cells.Count() == 0)

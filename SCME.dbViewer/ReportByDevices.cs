@@ -1,19 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SCME.Types.Profiles;
-using Excel = Microsoft.Office.Interop.Excel;
-using Microsoft.Office.Interop.Excel;
-using System.Collections;
-using SCME.dbViewer.CustomControl;
-using System.Globalization;
 using SCME.CustomControls;
 using SCME.Types;
-using System.Collections.ObjectModel;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OpenXml;
@@ -27,7 +18,7 @@ namespace SCME.dbViewer.ForParameters
         {
             this.Owner = owner;
             this.Row = row;
-        }        
+        }
 
         public ReportData Owner { get; set; }
         public DynamicObj Row { get; set; }
@@ -585,118 +576,33 @@ namespace SCME.dbViewer.ForParameters
             return "$" + RCColumnNumToA1ColumnNum(columnNum) + rowNum.ToString();
         }
 
-        private Range Range(Excel.Application exelApp, int rowNum, int columnNum)
-        {
-            switch (exelApp != null)
-            {
-                case true:
-                    string addr = xlRCtoA1(rowNum, columnNum);
-
-                    return exelApp.get_Range(addr, addr);
-
-                default:
-                    return null;
-            }
-        }
-
-        private Range Range(Excel.Application exelApp, int rowNumBeg, int columnNumBeg, int rowNumEnd, int columnNumEnd)
-        {
-            switch (exelApp != null)
-            {
-                case true:
-                    string addrBeg = xlRCtoA1(rowNumBeg, columnNumBeg);
-                    string addrEnd = xlRCtoA1(rowNumEnd, columnNumEnd);
-
-                    return exelApp.get_Range(addrBeg, addrEnd);
-
-                default:
-                    return null;
-            }
-        }
-
-        public void SetBorders(Excel.Application exelApp, Excel.Worksheet sheet, int rowNumBeg, int rowNumEnd, int columnEnd)
-        {
-            if ((exelApp != null) && (sheet != null))
-            {
-                const int xlContinuous = 1;
-                const int xlAutomatic = -4105;
-                const int xlThin = 2;
-                const int xlMedium = -4138;
-
-                //вычисляем адреса начала и конца выведенного блока данных по изделию
-                string addrBeg = xlRCtoA1(rowNumBeg, 1);
-                string addrEnd = xlRCtoA1(rowNumEnd, columnEnd);
-
-                Range range = exelApp.get_Range(addrBeg, addrEnd);
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideVertical].Weight = xlThin;
-
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlInsideHorizontal].Weight = xlThin;
-
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeLeft].Weight = xlMedium;
-
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeRight].Weight = xlThin;
-
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeTop].Weight = xlThin;
-
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].LineStyle = xlContinuous;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].ColorIndex = xlAutomatic;
-                range.Borders[Microsoft.Office.Interop.Excel.XlBordersIndex.xlEdgeBottom].Weight = xlThin;
-            }
-        }
-
-        public void TopHeaderToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum)
+        public void TopHeaderToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum)
         {
             //выводим верхнюю часть заголовка
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                int column = 1;
-                Range rng = this.Range(exelApp, rowNum, column, rowNum, column + 1);
-                rng.Merge();
-                rng.Value2 = "ПРОТОКОЛ ИСПЫТАНИЙ";
-                rng.HorizontalAlignment = -4108;
+                uint column = 1;
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 1, "ПРОТОКОЛ ИСПЫТАНИЙ", styleIndex);
                 column += 2;
 
                 //выводим тело профиля
-                rng = this.Range(exelApp, rowNum, column, rowNum, column + 3);
-                rng.Merge();
-                rng.Value2 = String.Concat(this.DeviceTypeRu, " ", this.ProfileBody);
-                rng.HorizontalAlignment = -4108;
+                string value = string.Concat(this.DeviceTypeRu, " ", this.ProfileBody);
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 3, value, styleIndex);
                 rowNum++;
                 column = 1;
 
-                rng = this.Range(exelApp, rowNum, column, rowNum, column + 1);
-                rng.Merge();
-                rng.Value2 = "Код ТМЦ";
-                rng.HorizontalAlignment = -4108;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 1, "Код ТМЦ", styleIndex);
                 column += 2;
 
-                rng = this.Range(exelApp, rowNum, column, rowNum, column + 3);
-                rng.Merge();
-                rng.Value2 = this.Item;
-                rng.HorizontalAlignment = -4108;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 3, this.Item, styleIndex);
                 rowNum++;
                 column = 1;
 
-                rng = this.Range(exelApp, rowNum, column, rowNum, column + 1);
-                rng.Merge();
-                rng.Value2 = "№ ПЗ";
-                rng.HorizontalAlignment = -4108;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 1, "№ ПЗ", styleIndex);
                 column += 2;
 
-                rng = this.Range(exelApp, rowNum, column, rowNum, column + 3);
-                rng.Merge();
-                rng.Value2 = this.GroupName;
-                rng.HorizontalAlignment = -4108;
+                OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 3, this.GroupName, styleIndex);
                 rowNum++;
             }
         }
@@ -760,12 +666,12 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void HeaderCPToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, ref int column)
+        public void HeaderCPToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, ref uint column)
         {
             //вывод наименований столбцов условий и параметров изделия
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                int columnsCount = 0;
+                uint columnsCount = 0;
 
                 int conditionsInDataSourceFirstIndex = this.ConditionsFirstIndex();
                 int parametersInDataSourceFirstIndex = this.ParametersFirstIndex();
@@ -788,6 +694,9 @@ namespace SCME.dbViewer.ForParameters
                     List<string> names = Constants.OrderedColumnNamesInReport.ToList();
                     names.AddRange(manuallyParameters.Select(n => n.Substring(n.IndexOf(SCME.Common.Constants.FromXMLNameSeparator) + SCME.Common.Constants.FromXMLNameSeparator.Length)));
 
+                    uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    uint styleBoldIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+
                     foreach (string name in names)
                     {
                         //вычисляем список мест хранения в memberNames: по вычисленному name может быть найдено множество мест хранения с именем name
@@ -806,26 +715,24 @@ namespace SCME.dbViewer.ForParameters
                                     Common.Routines.XMLValues subject = (columnIndex < parametersInDataSourceFirstIndex) ? Common.Routines.XMLValues.Conditions : (test == DbRoutines.cManually.ToUpper()) ? Common.Routines.XMLValues.ManuallyParameters : Common.Routines.XMLValues.Parameters;
 
                                     //выводим температуру при которой выполнено измерение данного параметра
-                                    int columnIndexInExcel = column + columnsCount;
+                                    uint columnIndexInExcel = column + columnsCount;
 
-                                    Range rng = this.Range(exelApp, rowNum, columnIndexInExcel);
-                                    rng.Value2 = string.Concat(temperatureCondition, " ", this.TemperatureByColumnName(columnName));
-                                    rng.HorizontalAlignment = -4108;
+                                    string value = string.Concat(temperatureCondition, " ", this.TemperatureByColumnName(columnName));
+                                    Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value);
+                                    cell.StyleIndex = styleIndex;
 
                                     //выводим имя условия/параметра
-                                    rng = this.Range(exelApp, rowNum + 1, columnIndexInExcel);
-                                    rng.Value2 = this.ColumnName(trueName, subject, tc);
-                                    rng.HorizontalAlignment = -4108;
-                                    rng.Font.Bold = true;
+                                    value = this.ColumnName(trueName, subject, tc);
+                                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel, value);
+                                    cell.StyleIndex = styleBoldIndex;
 
                                     //выводим единицу измерения
                                     string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnName);
 
-                                    if (this.Row.GetMember(nameOfUnitMeasure, out object value))
+                                    if (this.Row.GetMember(nameOfUnitMeasure, out object unitMeasure))
                                     {
-                                        rng = this.Range(exelApp, rowNum + 2, columnIndexInExcel);
-                                        rng.Value2 = value.ToString();
-                                        rng.HorizontalAlignment = -4108;
+                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel, unitMeasure.ToString());
+                                        cell.StyleIndex = styleIndex;
                                     }
 
                                     //выводим норму
@@ -833,10 +740,8 @@ namespace SCME.dbViewer.ForParameters
 
                                     if (nrmDescr != null)
                                     {
-                                        rng = this.Range(exelApp, rowNum + 3, columnIndexInExcel);
-                                        rng.Value2 = nrmDescr;
-                                        rng.HorizontalAlignment = -4108;
-                                        rng.Font.Bold = true;
+                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndexInExcel, nrmDescr);
+                                        cell.StyleIndex = styleBoldIndex;
                                     }
 
                                     //считаем сколько мы вывели новых столбцов
@@ -852,70 +757,75 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void HeaderToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, int column)
+        public void HeaderToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, uint column)
         {
             //вывод общего заголовка
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                Range rng = this.Range(exelApp, rowNum, column);
-                rng.Value2 = "Норма";
-                rng.HorizontalAlignment = -4108;
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, "Норма");
+                cell.StyleIndex = styleIndex;
                 rowNum++;
                 column--;
 
-                rng = this.Range(exelApp, rowNum, column);
-                rng.Value2 = "№ ППЭ";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, "№ ППЭ");
+                cell.StyleIndex = styleIndex;
                 column++;
 
-                rng = this.Range(exelApp, rowNum, column);
-                rng.Value2 = "Класс";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, "Класс");
+                cell.StyleIndex = styleIndex;
                 column++;
             }
         }
 
-        public void StatusHeaderToExcel(Excel.Application exelApp, Excel.Worksheet sheet, int rowNum, int column)
+        public void StatusHeaderToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, uint column)
         {
             //вывод наименований столбцов статуса и причины
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                Range rng = this.Range(exelApp, rowNum, column);
-                rng.Value2 = "Статус";
-                rng.HorizontalAlignment = -4108;
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, "Статус");
+                cell.StyleIndex = styleIndex;
                 column++;
 
-                rng = this.Range(exelApp, rowNum, column);
-                rng.Value2 = "Код НП";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, "Код НП");
+                cell.StyleIndex = styleIndex;
             }
         }
 
-        public void IdentityToExcel(Excel.Application exelApp, Excel.Worksheet sheet, int rowNum, ref int column)
+        public void IdentityToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, ref uint column)
         {
             //вывод идентификационные данные
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                //выводим идентификационные данные   
-                Range rng = this.Range(exelApp, rowNum, column);
-                rng.NumberFormat = "0";
-                rng.Value2 = this.CodeSimple;
+                //выводим идентификационные данные
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
+                Cell cell = null;
+
+                if (int.TryParse(this.CodeSimple, out int codeSimple))
+                {
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, codeSimple);
+                    cell.StyleIndex = styleIndex;
+                }
+
                 column++;
 
-                rng = this.Range(exelApp, rowNum, column);
-                rng.NumberFormat = "0";
-                rng.Value2 = this.DeviceClass;
-                rng.HorizontalAlignment = -4108;
+                if (int.TryParse(this.DeviceClass, out int deviceClass))
+                {
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, deviceClass);
+                    cell.StyleIndex = styleIndex;
+                }
+
                 column++;
             }
         }
 
-        public void BodyToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ListOfCalculatorsMinMax listOfCalculatorsMinMax, int rowNum, ref int column)
+        public void BodyToExcel(SpreadsheetDocument spreadsheetDocument, ListOfCalculatorsMinMax listOfCalculatorsMinMax, uint rowNum, ref uint column)
         {
             //вывод значений условий и параметров
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                int columnsCount = 0;
+                uint columnsCount = 0;
 
                 if (this.Row.GetMember(Constants.ConditionsInDataSourceFirstIndex, out object valueConditionsInDataSourceFirstIndex))
                 {
@@ -946,57 +856,57 @@ namespace SCME.dbViewer.ForParameters
                                         {
                                             if (value != null)
                                             {
-                                                int columnIndexInExcel = column + columnsCount;
+                                                uint columnIndexInExcel = column + columnsCount;
 
                                                 //вычисляем значения min/max для определённых в listOfCalculatorsMinMax параметров
                                                 string nameOfUnitMeasure = Routines.NameOfUnitMeasure(columnName);
+                                                PatternValues patternType = PatternValues.None;
+                                                string hexForegroundColor = "0";
+                                                bool bold = false;
 
                                                 if (this.Row.GetMember(nameOfUnitMeasure, out object um))
                                                 {
                                                     listOfCalculatorsMinMax.Calc(columnIndexInExcel, trueName, um.ToString(), value.ToString());
-                                                    Range rng = this.Range(exelApp, rowNum, columnIndexInExcel);
-
-                                                    if (Routines.IsInteger(value.ToString(), out int iValue, out bool isDouble, out double dValue))
-                                                    {
-                                                        //имеем дело с Int
-                                                        rng.NumberFormat = "0";
-                                                        rng.Value2 = iValue;
-                                                    }
-                                                    else
-                                                    {
-                                                        if (isDouble)
-                                                        {
-                                                            //имеем дело с Double
-                                                            rng.NumberFormat = "0.00";
-                                                            rng.Value2 = dValue;
-                                                        }
-                                                        else
-                                                        {
-                                                            //имеем дело не с Int и не с Double - со строкой
-                                                            rng.NumberFormat = "@";
-                                                            rng.Value2 = value;
-                                                        }
-                                                    }
-
-                                                    rng.HorizontalAlignment = -4108;
 
                                                     //проверяем входит ли выведенное значение параметра в норматив
                                                     if (Routines.IsInNrm(this.Row, columnName) == NrmStatus.Defective)
                                                     {
                                                         //выведенное значение за пределами норм - красим его
-                                                        rng.Interior.Pattern = 1; //xlSolid
-                                                        rng.Interior.PatternColorIndex = -4105; //xlAutomatic
-                                                        rng.Interior.Color = 255;
-                                                        rng.Font.Bold = true;
+                                                        patternType = PatternValues.Solid;
+                                                        hexForegroundColor = "FDE2F6";
+                                                        bold = true;
                                                     }
                                                     else
                                                     {
                                                         //если выведенное значение принадлежит параметру из списка важных для пользователя параметров - красим его серым
                                                         if (this.Owner.FListOfImportantNamesInReport.Contains(columnName))
                                                         {
-                                                            rng.Interior.Pattern = 1; //xlSolid
-                                                            rng.Interior.PatternColorIndex = -4105; //xlAutomatic
-                                                            rng.Interior.Color = Int32.Parse("EEEEEE", NumberStyles.HexNumber); //#EEEEEE - цвет в 16-тиричном формате
+                                                            patternType = PatternValues.Solid;
+                                                            hexForegroundColor = "EEEEEE";
+                                                        }
+                                                    }
+
+                                                    Cell cell = null;
+
+                                                    if (Routines.IsInteger(value.ToString(), out int iValue, out bool isDouble, out double dValue))
+                                                    {
+                                                        //имеем дело с Int
+                                                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, iValue);
+                                                        cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
+                                                    }
+                                                    else
+                                                    {
+                                                        if (isDouble)
+                                                        {
+                                                            //имеем дело с Double
+                                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, dValue);
+                                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(double));
+                                                        }
+                                                        else
+                                                        {
+                                                            //имеем дело не с Int и не с Double - со строкой
+                                                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value.ToString());
+                                                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, bold, patternType, hexForegroundColor, true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                                                         }
                                                     }
 
@@ -1015,7 +925,7 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public int StatusToExcel(Excel.Application exelApp, Excel.Worksheet sheet, int rowNum, int column, ref bool? isStatusOK)
+        public uint StatusToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, uint column, ref bool? isStatusOK)
         {
             //считываем значение итогового статуса
             string resultStatus = this.Status;
@@ -1026,170 +936,155 @@ namespace SCME.dbViewer.ForParameters
                 isStatusOK = (resultStatus == Constants.FaultSatatus) ? false : (bool?)null;
 
             //в this.CodeOfNonMatch имеем уже слитые в одну строку коды НП
-            this.statusToExcel(exelApp, sheet, resultStatus, this.CodeOfNonMatch, rowNum, column);
+            this.WriteStatusToExcel(spreadsheetDocument, resultStatus, this.CodeOfNonMatch, rowNum, column);
 
-            return (column + 1);
+            return column + 1;
         }
 
-        public int statusToExcel(Excel.Application exelApp, Excel.Worksheet sheet, string status, string codeOfNonMatch, int rowNum, int column)
+        public uint WriteStatusToExcel(SpreadsheetDocument spreadsheetDocument, string status, string codeOfNonMatch, uint rowNum, uint column)
         {
             //вывод значений столбцов статуса и кода НП
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
                 //выводим статус
-                Range rng = this.Range(exelApp, rowNum, column);
-                rng.NumberFormat = "@";
-                rng.Value2 = status;
-                rng.HorizontalAlignment = -4108;
+                Cell cell = null;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, status);
+                uint styleStringIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                cell.StyleIndex = styleStringIndex;
                 column++;
 
                 //выводим код НП
-                rng = this.Range(exelApp, rowNum, column);
-
                 if (int.TryParse(codeOfNonMatch, out int iCodeOfNonMatch))
                 {
-                    rng.NumberFormat = "0";
-                    rng.Value2 = iCodeOfNonMatch;
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, iCodeOfNonMatch);
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
                 }
                 else
                 {
-                    rng.NumberFormat = "@";
-                    rng.Value2 = codeOfNonMatch;
+                    cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, codeOfNonMatch);
+                    cell.StyleIndex = styleStringIndex;
                 }
-
-                rng.HorizontalAlignment = -4108;
             }
 
             return column;
         }
 
-        public void QtyReleasedByGroupNameToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, string groupName, int? qtyReleased)
+        public void QtyReleasedByGroupNameToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, string groupName, int? qtyReleased)
         {
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                Range rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Запущено";
-                rng.HorizontalAlignment = -4108;
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = qtyReleased.ToString();
-                rng.HorizontalAlignment = -4108;
+                Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Запущено");
+                cell.StyleIndex = styleIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = "шт.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, qtyReleased.ToString());
+                cell.StyleIndex = styleIndex;
+
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, "шт.");
+                cell.StyleIndex = styleIndex;
+
                 rowNum++;
             }
         }
 
-        public void QtyOKFaultToExcel(Excel.Application exelApp, Excel.Worksheet sheet, int rowNum, int totalCount, int statusUnknownCount, int statusFaultCount, int statusOKCount)
+        public void QtyOKFaultToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, int totalCount, int statusUnknownCount, int statusFaultCount, int statusOKCount)
         {
-            if ((exelApp != null) && (sheet != null))
+            if (spreadsheetDocument != null)
             {
-                Range rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Кол-во";
-                rng.HorizontalAlignment = -4108;
+                uint styleStringIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint styleIntIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = totalCount;
-                rng.NumberFormat = "0";
-                rng.HorizontalAlignment = -4108;
+                Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Кол-во");
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = "шт.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, totalCount);
+                cell.StyleIndex = styleIntIndex;
+
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, "шт.");
+                cell.StyleIndex = styleStringIndex;
                 rowNum++;
 
-                rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Годных";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Годных");
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = statusOKCount;
-                rng.NumberFormat = "0";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, statusOKCount);
+                cell.StyleIndex = styleIntIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = "шт.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, "шт.");
+                cell.StyleIndex = styleStringIndex;
+
                 rowNum++;
 
-                rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Fault";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Fault");
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = statusFaultCount;
-                rng.NumberFormat = "0";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, statusFaultCount);
+                cell.StyleIndex = styleIntIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = "шт.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, "шт.");
+                cell.StyleIndex = styleStringIndex;
+
                 rowNum++;
 
-                rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Неопределённых";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Неопределённых");
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = statusUnknownCount;
-                rng.NumberFormat = "0";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, statusUnknownCount);
+                cell.StyleIndex = styleIntIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = "шт.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, "шт.");
+                cell.StyleIndex = styleStringIndex;
+
                 rowNum++;
 
-                rng = this.Range(exelApp, rowNum, 2);
-                rng.Value2 = "Сформир.";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 2, "Сформир.");
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 3);
-                rng.Value2 = Environment.UserName;
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 3, Environment.UserName);
+                cell.StyleIndex = styleStringIndex;
 
-                rng = this.Range(exelApp, rowNum, 4);
-                rng.Value2 = DateTime.Today.ToString("dd.MM.yyyy");
-                rng.NumberFormat = "dd/mm/yyyy;@";
-                rng.HorizontalAlignment = -4108;
+                cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, 4, DateTime.Today.ToString("dd.MM.yyyy"));
+                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(DateTime));
             }
         }
 
-        public void ListOfCalculatorsMinMaxToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, ListOfCalculatorsMinMax listOfCalculatorsMinMax)
+        public void ListOfCalculatorsMinMaxToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, ListOfCalculatorsMinMax listOfCalculatorsMinMax)
         {
             //вывод вычисленных значений min/max из listOfCalculatorMinMax в Excel
-            if ((exelApp != null) && (sheet != null) && (listOfCalculatorsMinMax != null))
+            if ((spreadsheetDocument != null) && (listOfCalculatorsMinMax != null))
             {
                 foreach (CalculatorMinMax calculator in listOfCalculatorsMinMax)
                 {
-                    int column = calculator.Column;
+                    uint? column = calculator.Column;
 
                     //если из calculator выводить нечего, то ничего не выводим
-                    if (column != -1)
+                    if (column != null)
                     {
-                        Range rng = this.Range(exelApp, rowNum, column);
-                        rng.Value2 = string.Format("{0}\n{1}", "min/max", Routines.VtoU(calculator.Name));
-                        rng.HorizontalAlignment = -4108;
+                        uint styleStringIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                        uint styleDoubleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(double));
 
-                        //выводим единицу измерения
-                        rng = this.Range(exelApp, rowNum + 1, column);
-                        rng.NumberFormat = "@";
-                        rng.Value2 = calculator.Um;
-                        rng.HorizontalAlignment = -4108;
+                        Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, (uint)column, "min/max");
+                        cell.StyleIndex = styleStringIndex;
+
+                        //выводим наименование параметра и его единицу измерения
+                        string value = string.Concat(Routines.VtoU(calculator.Name), ", ", calculator.Um);
+                        cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, (uint)column, value);
+                        cell.StyleIndex = styleStringIndex;
 
                         //выводим значение минимума
-                        rng = this.Range(exelApp, rowNum + 2, column);
-                        rng.NumberFormat = "0.00";
-                        rng.Value2 = calculator.MinValue;
-                        rng.HorizontalAlignment = -4108;
+                        if (calculator.MinValue != null)
+                        {
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, (uint)column, (double)calculator.MinValue);
+                            cell.StyleIndex = styleDoubleIndex;
+                        }
 
                         //выводим значение максимума
-                        rng = this.Range(exelApp, rowNum + 3, column);
-                        rng.NumberFormat = "0.00";
-                        rng.Value2 = calculator.MaxValue;
-                        rng.HorizontalAlignment = -4108;
+                        if (calculator.MaxValue != null)
+                        {
+                            cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, (uint)column, (double)calculator.MaxValue);
+                            cell.StyleIndex = styleDoubleIndex;
+                        }
                     }
                 }
 
@@ -1205,7 +1100,7 @@ namespace SCME.dbViewer.ForParameters
                 uint column = 1;
                 //выводим обозначение протокола сборки
                 string value = string.Format("ПРОТОКОЛ СБОРКИ {0}", assemblyProtocolDescr);
-                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 2, value, styleIndex);
 
                 column = 4;
@@ -1261,7 +1156,7 @@ namespace SCME.dbViewer.ForParameters
 
                 column = 4;
                 DateTime dtValue = DateTime.Today;
-                uint dtStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(DateTime));
+                uint dtStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(DateTime));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 2, dtValue, dtStyleIndex);
 
                 //третья строка шапки
@@ -1307,26 +1202,26 @@ namespace SCME.dbViewer.ForParameters
 
                     value = string.Concat(nameDescr.TemperatureCondition.ToString(), " ", nameDescr.TemperatureValue);
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel, value);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                     //выводим имя условия/параметра
                     value = this.ColumnName(nameDescr.Name, nameDescr.Subject, nameDescr.TemperatureCondition);
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel, value);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                     //выводим единицу измерения
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel, nameDescr.UnitMeasure);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                     //выводим описание норм
                     cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 3, columnIndexInExcel, nameDescr.Nrm);
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                 }
 
                 if (columnsCount != 0)
                 {
                     value = "Параметры на ППЭ";
-                    styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                    styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                     OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, column, startRowNum, column + (uint)columnsCount, value, styleIndex);
                 }
 
@@ -1353,19 +1248,19 @@ namespace SCME.dbViewer.ForParameters
                             columnsCount = (columnsCount == null) ? 0 : columnsCount + 1;
 
                             cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnIndexInExcel + (uint)columnsCount, name.TemperatureMode);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                             cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 1, columnIndexInExcel + (uint)columnsCount, name.Descr);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                             cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum + 2, columnIndexInExcel + (uint)columnsCount, name.UnitMeasure);
-                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                            cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                         }
 
                         lastUserDataColumn = columnIndexInExcel + columnsCount;
 
                         value = "№ прибора";
-                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                         OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 1, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 1, value, styleIndex);
 
                         //здесь будем учитывать количество добавляемых столбцов в зависимости от типа изделия
@@ -1375,14 +1270,14 @@ namespace SCME.dbViewer.ForParameters
                         if (this.IsDeviceTypeRuMStarting(deviceTypeRu))
                         {
                             value = "Visol";
-                            styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                            styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                             OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 2, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 2, value, styleIndex);
 
                             additionColumnsByDeviceType = 1;
                         }
 
                         value = "Примечания";
-                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                        styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                         OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel + (uint)columnsCount + 2 + additionColumnsByDeviceType, startRowNum + 4, columnIndexInExcel + (uint)columnsCount + 2 + additionColumnsByDeviceType, value, styleIndex);
 
                         //возвращаем номер последнего выведенного столбца
@@ -1391,7 +1286,7 @@ namespace SCME.dbViewer.ForParameters
                 }
 
                 value = "Параметры на СПП";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, startRowNum, columnIndexInExcel, startRowNum, columnIndexInExcel + (uint)columnsCount, value, styleIndex);
 
                 //создаём пустые ячейки с очерченными границами в строке где выводятся нормы, но в столбцах отведённых под ручное написание параметров на СПП                
@@ -1405,14 +1300,14 @@ namespace SCME.dbViewer.ForParameters
                 column = 1;
 
                 value = "№ п/п";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum + 2, column, value, styleIndex);
 
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 1, rowNum + 2, column + 1, Properties.Resources.Code, styleIndex);
 
                 value = "ПЗ ППЭ";
-                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column + 2, rowNum + 2, column + 2, value, styleIndex);
             }
         }
@@ -1424,17 +1319,17 @@ namespace SCME.dbViewer.ForParameters
                 //выводим порядковый номер
                 uint column = 1;
                 Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, counter);
-                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
+                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(int));
 
                 //выводим номер ППЭ
                 column = 2;
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, this.CodeSimple);
-                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                 //выводим код ПЗ извлечённый из обозначения ППЭ
                 column = 3;
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, this.JobFromCode);
-                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
 
                 //номер прибора пользователь заполняет от руки в распечатанном отчёте
             }
@@ -1510,17 +1405,17 @@ namespace SCME.dbViewer.ForParameters
                             if (Routines.IsInNrm(this.Row, name) == NrmStatus.Defective)
                             {
                                 //выведенное значение за пределами норм - красим его
-                                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.Solid, "FF0000", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
+                                cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.Solid, "FF0000", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
                             }
                             else
                             {
                                 //если выведенное значение принадлежит параметру из списка важных для пользователя параметров - красим его серым
                                 if (this.Owner.FListOfImportantNamesInReport.Contains(name))
                                 {
-                                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.Solid, "EEEEEE", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
+                                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.Solid, "EEEEEE", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
                                 }
                                 else
-                                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
+                                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, type);
                             }
                         }
                     }
@@ -1537,7 +1432,7 @@ namespace SCME.dbViewer.ForParameters
             if (spreadsheetDocument != null)
             {
                 Cell cell;
-                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, typeof(string));
 
                 for (uint columnIndex = startColumn; columnIndex <= endColumn; columnIndex++)
                 {
@@ -1555,7 +1450,7 @@ namespace SCME.dbViewer.ForParameters
                 if (value != null)
                 {
                     Cell cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, columnDeviceComments, value.ToString());
-                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Center, typeof(string));
+                    cell.StyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", true, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Center, typeof(string));
                 }
             }
         }
@@ -1604,12 +1499,12 @@ namespace SCME.dbViewer.ForParameters
 
                 //сначала выводим описание норм
                 string value = "Предельно допустимые значения параметров:";
-                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, true, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint styleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, true, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                 OpenXmlRoutines.MergeCells(spreadsheetDocument, rowNum, column, rowNum, column + 5, value, styleIndex);
 
                 rowNumOffSet++;
 
-                uint dataStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Bottom, typeof(string));
+                uint dataStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Left, VerticalAlignmentValues.Bottom, typeof(string));
 
                 if (!string.IsNullOrEmpty(this.Tq))
                 {
@@ -1707,7 +1602,7 @@ namespace SCME.dbViewer.ForParameters
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column, value);
                 cell.StyleIndex = dataStyleIndex;
 
-                uint dataCenterStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Calibri", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
+                uint dataCenterStyleIndex = OpenXmlRoutines.CreateStyle(spreadsheetDocument, "Arial Narrow", 11, false, PatternValues.None, "0", false, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Bottom, typeof(string));
                 cell = OpenXmlRoutines.SetCellValue(spreadsheetDocument, rowNum, column + 6, this.AssemblyReportRecordCount);
                 cell.StyleIndex = dataCenterStyleIndex;
 
@@ -2041,36 +1936,96 @@ namespace SCME.dbViewer.ForParameters
             return result;
         }
 
-        public void QtyReleasedByGroupNameToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, string groupName, int? qtyReleased)
+        public void QtyReleasedByGroupNameToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, string groupName, int? qtyReleased)
         {
-            this[0].QtyReleasedByGroupNameToExcel(exelApp, sheet, ref rowNum, groupName, qtyReleased);
+            this[0].QtyReleasedByGroupNameToExcel(spreadsheetDocument, ref rowNum, groupName, qtyReleased);
         }
 
-        public void QtyOKFaultToExcel(Excel.Application exelApp, Excel.Worksheet sheet, int rowNum, int totalCount, int statusUnknownCount, int statusFaultCount, int statusOKCount)
+        public void QtyOKFaultToExcel(SpreadsheetDocument spreadsheetDocument, uint rowNum, int totalCount, int statusUnknownCount, int statusFaultCount, int statusOKCount)
         {
-            this[0].QtyOKFaultToExcel(exelApp, sheet, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
+            this[0].QtyOKFaultToExcel(spreadsheetDocument, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
         }
 
-        public void ListOfCalculatorsMinMaxToExcel(Excel.Application exelApp, Excel.Worksheet sheet, ref int rowNum, ListOfCalculatorsMinMax listOfCalculatorsMinMax)
+        public void SetColumnWidth(SpreadsheetDocument spreadsheetDocument)
         {
-            this[0].ListOfCalculatorsMinMaxToExcel(exelApp, sheet, ref rowNum, listOfCalculatorsMinMax);
+            if (spreadsheetDocument != null)
+            {
+                Columns columns = OpenXmlRoutines.Columns(spreadsheetDocument);
+
+                if (columns.ChildElements.Count() != 0)
+                    columns.RemoveAllChildren();
+
+                Dictionary<uint, double> maxWidthColumnsInPixel = OpenXmlRoutines.MaxWidthColumnsInPixel(spreadsheetDocument, 20);
+
+                //формируем описание столбцов в columns - устанавливаем ширину столбца
+                foreach (KeyValuePair<uint, double> entry in maxWidthColumnsInPixel)
+                {
+                    //устанавливаем значение ширины столбцов по хранящемуся в maxWidthColumnsInPixel значению
+                    //maxWidthColumnsInPixel хранит значения которые перед применением необходимо пересчитать
+                    columns.Append(new Column() { Min = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Max = DocumentFormat.OpenXml.UInt32Value.FromUInt32(entry.Key), Width = OpenXmlRoutines.WidthToOpenXml(entry.Value), CustomWidth = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true), BestFit = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true) });
+                }
+            }
+        }
+
+        public void PageSetUp(SpreadsheetDocument spreadsheetDocument)
+        {
+            if (spreadsheetDocument != null)
+            {
+                WorksheetPart worksheetPart = spreadsheetDocument.WorkbookPart.GetPartsOfType<WorksheetPart>().First();
+
+                if (worksheetPart != null)
+                {
+                    DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = worksheetPart.Worksheet;
+
+                    if (worksheet != null)
+                    {
+                        SheetProperties sheetProperties = new SheetProperties(new PageSetupProperties());
+                        sheetProperties.PageSetupProperties.FitToPage = DocumentFormat.OpenXml.BooleanValue.FromBoolean(true);
+                        worksheet.SheetProperties = sheetProperties;
+
+                        //PageMargins должен быть добавлен после SheetData, но перед PageSetup
+                        PageMargins pageMargins = new PageMargins()
+                        {
+                            Left = DocumentFormat.OpenXml.DoubleValue.FromDouble(0.195),
+                            Right = DocumentFormat.OpenXml.DoubleValue.FromDouble(0.195),
+                            Top = DocumentFormat.OpenXml.DoubleValue.FromDouble(0.195),
+                            Bottom = DocumentFormat.OpenXml.DoubleValue.FromDouble(0.5),
+                            Header = DocumentFormat.OpenXml.DoubleValue.FromDouble(0),
+                            Footer = DocumentFormat.OpenXml.DoubleValue.FromDouble(0.195)
+                        };
+                        worksheet.AppendChild(pageMargins);
+
+                        DocumentFormat.OpenXml.Spreadsheet.PageSetup pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup()
+                        {
+                            Orientation = OrientationValues.Landscape,
+                            PaperSize = DocumentFormat.OpenXml.UInt32Value.FromUInt32(9), //A4
+                            FitToHeight = DocumentFormat.OpenXml.UInt32Value.FromUInt32(1),
+                            FitToWidth = DocumentFormat.OpenXml.UInt32Value.FromUInt32(1),
+                            Scale = DocumentFormat.OpenXml.UInt32Value.FromUInt32(1),
+                        };
+                        worksheet.AppendChild(pageSetup);
+                    }
+                }
+            }
+        }
+
+        public void ListOfCalculatorsMinMaxToExcel(SpreadsheetDocument spreadsheetDocument, ref uint rowNum, ListOfCalculatorsMinMax listOfCalculatorsMinMax)
+        {
+            this[0].ListOfCalculatorsMinMaxToExcel(spreadsheetDocument, ref rowNum, listOfCalculatorsMinMax);
         }
 
         public void ReportToExcel()
         {
-            Excel.Application exelApp = new Microsoft.Office.Interop.Excel.Application
-            {
-                Visible = false
-            };
+            //удаляем все старые отчёты, чтобы не захламлять директорию
+            Routines.ClearOldReports(Routines.EnvironmentVariableTempValue(), Routines.PartOfCasualReportFileName);
+
+            string fileFullAddress = GetReportFileFullAddress(string.Concat(Routines.PartOfCasualReportFileName, " ", DateTime.Now.ToString("dd.MM.yyyy")));
+
+            SpreadsheetDocument spreadsheetDocument = OpenXmlRoutines.Create(fileFullAddress);
 
             try
             {
-                exelApp.SheetsInNewWorkbook = 2;
-                Excel.Workbook workBook = exelApp.Workbooks.Add(Type.Missing);
-                exelApp.DisplayAlerts = false;
-
-                Excel.Worksheet sheet = (Excel.Worksheet)exelApp.Worksheets.get_Item(1);
-                sheet.Name = "Протокол испытаний";
+                DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = OpenXmlRoutines.CreateSheet(spreadsheetDocument, "Протокол испытаний");
 
                 //здесь будем хранить флаг о неизменности ПЗ во всём выведенном отчёте
                 bool groupNameChanged = false;
@@ -2086,11 +2041,11 @@ namespace SCME.dbViewer.ForParameters
                 int statusUnknownCount = 0;
                 int totalCount = 0;
 
-                int lastUsedColumn = 0;
+                uint lastUsedColumn = 0;
 
-                int rowNum = 1;
-                int rowNumBeg;
-                int columnEnd = 0;
+                uint rowNum = 1;
+                uint rowNumBeg;
+                uint columnEnd = 0;
 
                 //храним здесь сколько шапок было выведено
                 int needHeaderCount = 0;
@@ -2104,14 +2059,14 @@ namespace SCME.dbViewer.ForParameters
                     if ((!groupNameChanged) && (lastGroupName != null))
                         groupNameChanged = (currentGroupName != lastGroupName);
 
-                    int column = 1;
+                    uint column = 1;
 
-                    bool needHeader = ((lastUsedColumnsSignature == string.Empty) || (lastUsedColumnsSignature != p.ColumnsSignature));
+                    bool needHeader = (lastUsedColumnsSignature == string.Empty) || (lastUsedColumnsSignature != p.ColumnsSignature);
 
                     lastGroupName = currentGroupName;
 
                     //выводим шапку если имеет место смена списка выведенных столбцов
-                    int headerRowNum = rowNum + 2;
+                    uint headerRowNum = rowNum + 2;
                     rowNumBeg = rowNum;
 
                     if (needHeader)
@@ -2119,30 +2074,30 @@ namespace SCME.dbViewer.ForParameters
                         columnEnd = column + 2;
 
                         //выводим самую верхнюю часть шапки
-                        p.TopHeaderToExcel(exelApp, sheet, ref rowNum);
+                        p.TopHeaderToExcel(spreadsheetDocument, ref rowNum);
 
                         //выводим шапку столбцов условий и параметров
-                        p.HeaderCPToExcel(exelApp, sheet, ref rowNum, ref columnEnd);
+                        p.HeaderCPToExcel(spreadsheetDocument, ref rowNum, ref columnEnd);
 
                         //выводим шапку идентификационных данных
-                        p.HeaderToExcel(exelApp, sheet, ref rowNum, column + 1);
+                        p.HeaderToExcel(spreadsheetDocument, ref rowNum, column + 1);
 
                         //выводим шапку статуса
-                        p.StatusHeaderToExcel(exelApp, sheet, rowNum, columnEnd);
+                        p.StatusHeaderToExcel(spreadsheetDocument, rowNum, columnEnd);
 
                         needHeaderCount++;
                         rowNum++;
                     }
 
                     //выводим идентификационные данные
-                    p.IdentityToExcel(exelApp, sheet, rowNum, ref column);
+                    p.IdentityToExcel(spreadsheetDocument, rowNum, ref column);
 
                     //выводим тело
-                    p.BodyToExcel(exelApp, sheet, listOfCalculatorsMinMax, rowNum, ref column);
+                    p.BodyToExcel(spreadsheetDocument, listOfCalculatorsMinMax, rowNum, ref column);
 
                     //выводим статус
                     bool? isStatusOK = null;
-                    lastUsedColumn = p.StatusToExcel(exelApp, sheet, rowNum, columnEnd, ref isStatusOK);
+                    lastUsedColumn = p.StatusToExcel(spreadsheetDocument, rowNum, columnEnd, ref isStatusOK);
 
                     //формируем значения счётчиков неопределённого/успешного/не успешного прохождения тестов
                     if (isStatusOK == null)
@@ -2164,9 +2119,6 @@ namespace SCME.dbViewer.ForParameters
                     //считаем сколько всего изделий просмотрено в цикле
                     totalCount++;
 
-                    //обводим границы
-                    p.SetBorders(exelApp, sheet, rowNumBeg, rowNum, lastUsedColumn);
-
                     //запоминаем набор столбцов, которые мы вывели
                     lastUsedColumnsSignature = p.ColumnsSignature;
 
@@ -2180,42 +2132,34 @@ namespace SCME.dbViewer.ForParameters
 
                     //выводим значения min/max для определённых в listOfCalculatorsMinMax параметров
                     if (needHeaderCount == 1)
-                        this.ListOfCalculatorsMinMaxToExcel(exelApp, sheet, ref rowNum, listOfCalculatorsMinMax);
+                        this.ListOfCalculatorsMinMaxToExcel(spreadsheetDocument, ref rowNum, listOfCalculatorsMinMax);
 
                     //выводим количество ТМЦ, запущенных по ПЗ
-                    this.QtyReleasedByGroupNameToExcel(exelApp, sheet, ref rowNum, lastGroupName, qtyReleased);
+                    this.QtyReleasedByGroupNameToExcel(spreadsheetDocument, ref rowNum, lastGroupName, qtyReleased);
 
                     //выводим кол-во годных/не годных
-                    this.QtyOKFaultToExcel(exelApp, sheet, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
+                    this.QtyOKFaultToExcel(spreadsheetDocument, rowNum, totalCount, statusUnknownCount, statusFaultCount, statusOKCount);
                 }
 
-                //создаём нижний колонтитул
-                sheet.PageSetup.RightFooter = "Лист &P Листов &N";
-
-                sheet.UsedRange.Font.Name = "Arial Narrow";
-                sheet.UsedRange.EntireRow.AutoFit();
-                sheet.UsedRange.EntireColumn.AutoFit();
-                sheet.Columns["A:A"].ColumnWidth = 11;
-                sheet.Columns["B:B"].ColumnWidth = 11;
+                this.SetColumnWidth(spreadsheetDocument);
 
                 //настраиваем вид печатного отчёта
-                sheet.PageSetup.LeftMargin = 0;
-                sheet.PageSetup.RightMargin = 0;
-                sheet.PageSetup.TopMargin = 42;
-                sheet.PageSetup.BottomMargin = 28;
-                sheet.PageSetup.Orientation = Excel.XlPageOrientation.xlLandscape;
-                sheet.PageSetup.PaperSize = Excel.XlPaperSize.xlPaperA4;
-                sheet.PageSetup.Zoom = false;
-                sheet.PageSetup.FitToPagesWide = 1;
-                sheet.PageSetup.FitToPagesTall = false;
-                sheet.PageSetup.ScaleWithDocHeaderFooter = true;
-                sheet.PageSetup.AlignMarginsHeaderFooter = true;
+                this.PageSetUp(spreadsheetDocument);
+
+                //создаём нижний колонтитул
+                //колонтитулы должны быть созданы строго после настройки вида печатного отчёта
+                OpenXmlRoutines.CreateHeaderFooter(worksheet, null, "&R&\"Arial Narrow,Regular\"Лист &P, листов &N, напечатан &D");
+
+                spreadsheetDocument.WorkbookPart.Workbook.Save();
             }
             finally
             {
-                exelApp.Visible = true;
-                exelApp.WindowState = Microsoft.Office.Interop.Excel.XlWindowState.xlMaximized;
+                //освобождаем ресурсы, занятые spreadsheetDocument
+                spreadsheetDocument.Dispose();
             }
+
+            //открываем созданный файл тем редактором, который ассоциирован с расширением созданного файла
+            System.Diagnostics.Process.Start(fileFullAddress);
         }
 
         /*
@@ -2439,19 +2383,19 @@ namespace SCME.dbViewer.ForParameters
             return result;
         }
 
-        private string GenerateAssemblyReportFileFullAddress(string assemblyProtocolDescr, uint? additionFileName)
+        private string GenerateReportFileFullAddress(string reportDescr, uint? additionFileName)
         {
             string sAdditionFileName = (additionFileName == null) ? string.Empty : string.Concat("_", additionFileName.ToString());
 
-            return string.Concat(Routines.EnvironmentVariableTempValue(), Routines.PartOfAssemblyProtocolFileName, assemblyProtocolDescr, sAdditionFileName, ".xlsx");
+            return string.Concat(Routines.EnvironmentVariableTempValue(), reportDescr, sAdditionFileName, ".xlsx");
         }
 
-        private string GetAssemblyReportFileFullAddress(string assemblyProtocolDescr)
+        private string GetReportFileFullAddress(string reportDescr)
         {
-            //формирует полное имя файла отчёта по протоколу сборки
+            //формирует полное имя файла отчёта
             //файл со сгенерированным именем гарантированно не занят в системе
 
-            string result = GenerateAssemblyReportFileFullAddress(assemblyProtocolDescr, null);
+            string result = GenerateReportFileFullAddress(reportDescr, null);
 
             if (System.IO.File.Exists(result) && Routines.IsFileLocked(result))
             {
@@ -2459,7 +2403,7 @@ namespace SCME.dbViewer.ForParameters
 
                 while (Routines.IsFileLocked(result))
                 {
-                    result = GenerateAssemblyReportFileFullAddress(assemblyProtocolDescr, additionFileName);
+                    result = GenerateReportFileFullAddress(reportDescr, additionFileName);
 
                     if (!System.IO.File.Exists(result))
                         break;
@@ -2484,75 +2428,81 @@ namespace SCME.dbViewer.ForParameters
             string assemblyProtocolDescr = this[1].AssemblyProtocolDescr;
 
             //удаляем все старые отчёты по протоколу сборки, чтобы не захламлять директорию
-            Routines.ClearOldAssemblyReports(Routines.EnvironmentVariableTempValue(), Routines.PartOfAssemblyProtocolFileName);
+            Routines.ClearOldReports(Routines.EnvironmentVariableTempValue(), Routines.PartOfAssemblyProtocolFileName);
 
-            string fileFullAddress = GetAssemblyReportFileFullAddress(assemblyProtocolDescr);
+            string fileFullAddress = GetReportFileFullAddress(string.Concat(Routines.PartOfAssemblyProtocolFileName, " ", assemblyProtocolDescr));
 
             SpreadsheetDocument spreadsheetDocument = OpenXmlRoutines.Create(fileFullAddress);
-            Sheet sheet = OpenXmlRoutines.CreateSheet(spreadsheetDocument, "Протокол сборки");
 
-            uint? firstUserColumn = null;
-            uint? lastUserColumn = null;
-            uint? lastColumn = null;
-
-            //выводим шапку отчёта
-            //она не зависит от данных, которые выводятся в цикле
-            //в нулевой записи хранятся данные для всего протокола, справедливые для любой записи
-            uint rowNum = 1;
-
-            ReportRecord zeroRecord = this[0];
-            zeroRecord.AssemblyTopHeaderToExcel(spreadsheetDocument, assemblyProtocolDescr, ref rowNum);
-
-            //вычисляем список столбцов для данного отчёта
-            List<ParamReference> norms = new List<ParamReference>();
-            List<NameDescr> allNames = this.AllNames(itav, deviceTypeID, constructive, modification, norms);
-
-            //начинаем именно с записи с индексом 1
-            for (int i = 1; i < this.Count; i++)
+            try
             {
-                ReportRecord r = this[i];
+                OpenXmlRoutines.CreateSheet(spreadsheetDocument, "Протокол сборки");
 
-                //выводим имена столбцов табличных данных один раз на весь отчёт
-                if (i == 1)
+                uint? firstUserColumn = null;
+                uint? lastUserColumn = null;
+                uint? lastColumn = null;
+
+                //выводим шапку отчёта
+                //она не зависит от данных, которые выводятся в цикле
+                //в нулевой записи хранятся данные для всего протокола, справедливые для любой записи
+                uint rowNum = 1;
+
+                ReportRecord zeroRecord = this[0];
+                zeroRecord.AssemblyTopHeaderToExcel(spreadsheetDocument, assemblyProtocolDescr, ref rowNum);
+
+                //вычисляем список столбцов для данного отчёта
+                List<ParamReference> norms = new List<ParamReference>();
+                List<NameDescr> allNames = this.AllNames(itav, deviceTypeID, constructive, modification, norms);
+
+                //начинаем именно с записи с индексом 1
+                for (int i = 1; i < this.Count; i++)
                 {
-                    r.TableColumnNamesToExcel(spreadsheetDocument, allNames, rowNum, out firstUserColumn, out lastUserColumn, out lastColumn);
-                    rowNum = 9;
+                    ReportRecord r = this[i];
+
+                    //выводим имена столбцов табличных данных один раз на весь отчёт
+                    if (i == 1)
+                    {
+                        r.TableColumnNamesToExcel(spreadsheetDocument, allNames, rowNum, out firstUserColumn, out lastUserColumn, out lastColumn);
+                        rowNum = 9;
+                    }
+
+                    //выводим идентификационные данные в таблицу
+                    r.TableIdentityDataToExcel(spreadsheetDocument, i, rowNum);
+
+                    //выводим значения parameters/conditions  в таблицу
+                    r.TableBodyToExcel(spreadsheetDocument, allNames, rowNum);
+
+                    if (lastColumn != null)
+                    {
+                        if (firstUserColumn != null)
+                            r.MakeEmptyCells(spreadsheetDocument, rowNum, (uint)firstUserColumn, (uint)lastColumn);
+
+                        //выводим значения комментариев
+                        r.DeviceCommentsToExcel(spreadsheetDocument, rowNum, (uint)lastColumn);
+                    }
+
+                    rowNum++;
                 }
 
-                //выводим идентификационные данные в таблицу
-                r.TableIdentityDataToExcel(spreadsheetDocument, i, rowNum);
+                rowNum--;
 
-                //выводим значения parameters/conditions  в таблицу
-                r.TableBodyToExcel(spreadsheetDocument, allNames, rowNum);
+                //ширина, выставленная автоматически слишком мала для заполнения руками - выставляем свою ширину
+                //пользователи данного отчёта пишут руками некоторые данные в распечатанном отчёте и высота ячеек, установленных автоматически по самой высокой ячейке в строке им мала - поэтому
+                zeroRecord.SetColumnWidth(spreadsheetDocument, (uint)firstUserColumn, (uint)lastUserColumn, 20);
 
-                if (lastColumn != null)
-                {
-                    if (firstUserColumn != null)
-                        r.MakeEmptyCells(spreadsheetDocument, rowNum, (uint)firstUserColumn, (uint)lastColumn);
+                //выводим данные из нулевой строки под выведенной таблицей
+                rowNum += 2;
+                zeroRecord.BottomDataToExcel(spreadsheetDocument, norms, rowNum, (uint)lastColumn);
 
-                    //выводим значения комментариев
-                    r.DeviceCommentsToExcel(spreadsheetDocument, rowNum, (uint)lastColumn);
-                }
+                zeroRecord.PageSetup(spreadsheetDocument);
 
-                rowNum++;
+                spreadsheetDocument.WorkbookPart.Workbook.Save();
             }
-
-            rowNum--;
-
-            //ширина, выставленная автоматически слишком мала для заполнения руками - выставляем свою ширину
-            //пользователи данного отчёта пишут руками некоторые данные в распечатанном отчёте и высота ячеек, установленных автоматически по самой высокой ячейке в строке им мала - поэтому
-            zeroRecord.SetColumnWidth(spreadsheetDocument, (uint)firstUserColumn, (uint)lastUserColumn, 20);
-
-            //выводим данные из нулевой строки под выведенной таблицей
-            rowNum += 2;
-            zeroRecord.BottomDataToExcel(spreadsheetDocument, norms, rowNum, (uint)lastColumn);
-
-            zeroRecord.PageSetup(spreadsheetDocument);
-
-            spreadsheetDocument.WorkbookPart.Workbook.Save();
-
-            //освобождаем ресурсы, занятые spreadsheetDocument
-            spreadsheetDocument.Dispose();
+            finally
+            {
+                //освобождаем ресурсы, занятые spreadsheetDocument
+                spreadsheetDocument.Dispose();
+            }
 
             //открываем созданный файл тем редактором, который ассоциирован с расширением созданного файла
             System.Diagnostics.Process.Start(fileFullAddress);
@@ -3162,7 +3112,7 @@ namespace SCME.dbViewer.ForParameters
     {
         private string FName = null;
         private string FUm = null;
-        private int FColumn = -1;
+        private uint? FColumn = null;
         private double? FMinValue = null;
         private double? FMaxValue = null;
 
@@ -3187,7 +3137,7 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public int Column
+        public uint? Column
         {
             get
             {
@@ -3211,7 +3161,7 @@ namespace SCME.dbViewer.ForParameters
             }
         }
 
-        public void Calc(int column, string name, string um, string value)
+        public void Calc(uint column, string name, string um, string value)
         {
             if (name.Contains(this.FName))
             {
@@ -3221,7 +3171,7 @@ namespace SCME.dbViewer.ForParameters
                     this.FMaxValue = (this.FMaxValue == null) ? dValue : Math.Max((double)this.FMaxValue, dValue);
 
                     //запоминаем номер столбца в отчёте Excel чтобы при выводе вычисленных min/max данных знать куда выводить вычисленные данные
-                    if (this.FColumn == -1)
+                    if (this.FColumn == null)
                         this.FColumn = column;
 
                     if (this.FUm == null)
@@ -3240,7 +3190,7 @@ namespace SCME.dbViewer.ForParameters
             this.Add(new CalculatorMinMax("VGT")); //UGT
         }
 
-        public void Calc(int column, string name, string um, string value)
+        public void Calc(uint column, string name, string um, string value)
         {
             foreach (CalculatorMinMax calculator in this)
                 calculator.Calc(column, name, um, value);
